@@ -1,36 +1,33 @@
 <script lang="ts">
-    import type { Instance, StaticIp } from "@aws-sdk/client-lightsail";
+    import type { Domain, Instance, StaticIp } from "@aws-sdk/client-lightsail";
     import { each } from "svelte/internal";
+    import InstanceComponent from "./InstanceComponent.svelte";
 
-    let instances: Instance[] = [];
-    let staticIps: StaticIp[] = [];
+    import { getDomainPointedIp } from "$lib/utils";
 
-    async function getInstances() {
-        let res = await fetch("/api?resource=instance", {
-            method: "POST",
-            body: JSON.stringify({}),
-            headers: {
-                "content-type": "application/json",
-            },
-        });
+    import { getContext } from "svelte";
+    import type { Writable } from "svelte/store";
 
+    let instances = getContext<Writable<Instance[]>>("instances");
+    let staticIps = getContext<Writable<StaticIp[]>>("staticIps");
+    let domains = getContext<Writable<Domain[]>>("domains");
 
-        const resObj = await res.json();
+    async function refreshStores() {
+        async function getResource(resource: string) {
+            let res = await fetch(`/api?resource=${resource}`, {
+                method: "POST",
+                body: JSON.stringify({}),
+                headers: {
+                    "content-type": "application/json",
+                },
+            });
 
-        instances = resObj;
-    }
-
-    async function getStaticIps() {
-        let res = await fetch("/api?resource=staticIp", {
-            method: "POST",
-            body: JSON.stringify({}),
-            headers: {
-                "content-type": "application/json",
-            },
-        });
-
-        staticIps = await res.json();
-
+            const resObj = await res.json();
+            return resObj;
+        }
+        instances.set(await getResource("instance"));
+        staticIps.set(await getResource("staticIp"));
+        domains.set(await getResource("domain"));
     }
 </script>
 
@@ -39,21 +36,15 @@
     Visit <a href="https://kit.svelte.dev">kit.svelte.dev</a> to read the documentation
 </p>
 <div class="flex flex-wrap">
-    {#each instances as instance}
+    {#each $instances as instance}
         <div class="card w-96 bg-base-100 shadow-xl">
-            <div class="card-body">
-                <h2 class="card-title">Card title!</h2>
-                <p>{instance.name}</p>
-                <div class="card-actions justify-end">
-                    <button class="btn btn-primary">Buy Now</button>
-                </div>
-            </div>
+            <InstanceComponent {instance} />
         </div>
     {/each}
 </div>
-<div class="divider"></div> 
+<div class="divider" />
 <div class="flex flex-wrap">
-    {#each staticIps as ip}
+    {#each $staticIps as ip}
         <div class="card w-96 bg-base-100 shadow-xl">
             <div class="card-body">
                 <h2 class="card-title">Card title!</h2>
@@ -67,17 +58,25 @@
         </div>
     {/each}
 </div>
-<div class="flex flex-row">
-    <button
-        class="btn btn-primary btn-sm"
-        on:click={getInstances}
-    >
-        Instances
-    </button>
-    <button
-        class="btn btn-primary btn-sm"
-        on:click={getStaticIps}
-    >
-        Static IPs
+<div class="divider" />
+<div class="flex flex-wrap">
+    {#each $domains as domain}
+        <div class="card w-96 bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title">Card title!</h2>
+                <p>{domain.name}</p>
+                {#if domain.domainEntries}
+                    <p>{getDomainPointedIp(domain)}</p>
+                {/if}
+                <div class="card-actions justify-end">
+                    <button class="btn btn-primary">Buy Now</button>
+                </div>
+            </div>
+        </div>
+    {/each}
+</div>
+<div class="flex flex-row my-8">
+    <button class="btn btn-primary btn-sm" on:click={refreshStores}>
+        Referesh
     </button>
 </div>

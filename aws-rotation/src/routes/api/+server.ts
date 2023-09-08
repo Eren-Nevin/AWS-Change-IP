@@ -20,6 +20,7 @@ import {
     type StaticIp,
     type Domain,
     type Operation,
+    GetDomainCommand,
 } from "@aws-sdk/client-lightsail";
 import type { RequestEvent } from "./$types";
 
@@ -66,6 +67,7 @@ class DomainsRequestHandler {
 class RegionRequestHandler {
     static_ips: StaticIp[] = [];
     instances: Instance[] = [];
+    domains: Domain[] = [];
     domainClient = new LightsailClient(domainClientDefaults);
     client: LightsailClient;
 
@@ -158,9 +160,35 @@ class RegionRequestHandler {
         return wereOperationsSuccessful;
     }
 
-    async getDomains() {
+    async refreshDomains() {
         const getDomainsCommand = new GetDomainsCommand({});
+        const res = await this.domainClient.send(getDomainsCommand);
+        if (res.domains) {
+            this.domains = res.domains;
+            return true;
+        }
     }
+
+    async getSpecificDomainInfo(domain_name: string) {
+        const getDomainInfoCommand = new GetDomainCommand({ domainName: domain_name });
+        const res = await this.domainClient.send(getDomainInfoCommand);
+        return res.domain;
+    }
+
+    getDomainPointedIp(domain: Domain) {
+        return domain.domainEntries?.find((de) => de.type === 'A')?.target;
+    }
+
+    async getDomainPointedInstance(domain: Domain) {
+        const domainPointedIp = this.getDomainPointedIp(domain);
+        if (!domainPointedIp) return undefined;
+        const pointedInstance = this.instances.find((i) => i.publicIpAddress === domainPointedIp);
+        return pointedInstance;
+    }
+
+
+
+
 
 
 }
@@ -183,9 +211,9 @@ export async function POST(request: RequestEvent): Promise<Response> {
             await euCenteralHandler.refreshInstances()
             finalRes = euCenteralHandler.instances;
         } else if (resource === 'domain') {
+            await euCenteralHandler.refreshDomains()
+            finalRes = euCenteralHandler.domains;
         }
-        console.log(euCenteralHandler.instances);
-        console.log(euCenteralHandler.static_ips);
     } catch (e) {
         console.error(e);
     }
