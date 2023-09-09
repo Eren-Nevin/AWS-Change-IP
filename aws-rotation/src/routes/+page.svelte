@@ -1,82 +1,114 @@
 <script lang="ts">
+    // TODO: Handle backend sent errors
     import type { Domain, Instance, StaticIp } from "@aws-sdk/client-lightsail";
-    import { each } from "svelte/internal";
     import InstanceComponent from "./InstanceComponent.svelte";
 
     import { getDomainPointedIp } from "$lib/utils";
 
     import { getContext } from "svelte";
     import type { Writable } from "svelte/store";
+    import { Command, Resource } from "../lib/models";
+
+    import {
+        allocateStaticIP,
+        releaseStaticIp,
+        attachStaticIP,
+        detachStaticIp,
+        getResource,
+        refreshResource,
+    } from "../lib/backend";
 
     let instances = getContext<Writable<Instance[]>>("instances");
     let staticIps = getContext<Writable<StaticIp[]>>("staticIps");
     let domains = getContext<Writable<Domain[]>>("domains");
 
-    async function refreshStores() {
-        async function getResource(resource: string) {
-            let res = await fetch(`/api?resource=${resource}`, {
-                method: "POST",
-                body: JSON.stringify({}),
-                headers: {
-                    "content-type": "application/json",
-                },
-            });
+    let selectedRegion = "eu-central-1";
 
-            const resObj = await res.json();
-            return resObj;
-        }
-        instances.set(await getResource("instance"));
-        staticIps.set(await getResource("staticIp"));
-        domains.set(await getResource("domain"));
+    export async function getStores(region: string) {
+        instances.set(await getResource(Resource.INSTANCE, region));
+        staticIps.set(await getResource(Resource.STATIC_IP, region));
+        domains.set(await getResource(Resource.DOMAIN, region));
+    }
+    export async function refreshStores(region: string) {
+        instances.set(await refreshResource(Resource.INSTANCE, region));
+        staticIps.set(await refreshResource(Resource.STATIC_IP, region));
+        domains.set(await refreshResource(Resource.DOMAIN, region));
     }
 </script>
 
-<h1>Welcome to SvelteKit</h1>
-<p>
-    Visit <a href="https://kit.svelte.dev">kit.svelte.dev</a> to read the documentation
-</p>
-<div class="flex flex-wrap">
-    {#each $instances as instance}
-        <div class="card w-96 bg-base-100 shadow-xl">
-            <InstanceComponent {instance} />
-        </div>
-    {/each}
-</div>
-<div class="divider" />
-<div class="flex flex-wrap">
-    {#each $staticIps as ip}
-        <div class="card w-96 bg-base-100 shadow-xl">
-            <div class="card-body">
-                <h2 class="card-title">Card title!</h2>
-                <p>{ip.name}</p>
-                <p>{ip.ipAddress}</p>
-                <p>{ip.attachedTo}</p>
-                <div class="card-actions justify-end">
-                    <button class="btn btn-primary">Buy Now</button>
+<section class="container p-12">
+    <div class="flex flex-row gap-2">
+        <button
+            class="btn btn-primary"
+            on:click={() => getStores(selectedRegion)}
+        >
+            Get
+        </button>
+        <button
+            class="btn btn-primary"
+            on:click={() => refreshStores(selectedRegion)}
+        >
+            Referesh
+        </button>
+        <button
+            class="btn btn-primary"
+            on:click={async () => {
+                await allocateStaticIP(selectedRegion, "New-IP");
+            }}>Allocate IP</button
+        >
+        <button
+            class="btn btn-primary"
+            on:click={async () => {
+                await releaseStaticIp(selectedRegion, "New-IP");
+            }}>Release IP</button
+        >
+    </div>
+
+    <div class="flex flex-wrap">
+        {#each $instances as instance}
+            <div class="card w-96 bg-base-100 shadow-xl">
+                <InstanceComponent {instance} />
+            </div>
+        {/each}
+    </div>
+    <div class="divider" />
+    <div class="flex flex-wrap">
+        {#each $staticIps as ip}
+            <div class="card w-96 bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">Card title!</h2>
+                    <p>{ip.name}</p>
+                    <p>{ip.ipAddress}</p>
+                    <p>{ip.attachedTo ?? "Dangling"}</p>
+                    <div class="card-actions justify-end">
+                        <button
+                            class="btn btn-primary"
+                            on:click={async () => {
+                                if (ip.name) {
+                                    await detachStaticIp(ip.name);
+                                }
+                            }}>Detach</button
+                        >
+                    </div>
                 </div>
             </div>
-        </div>
-    {/each}
-</div>
-<div class="divider" />
-<div class="flex flex-wrap">
-    {#each $domains as domain}
-        <div class="card w-96 bg-base-100 shadow-xl">
-            <div class="card-body">
-                <h2 class="card-title">Card title!</h2>
-                <p>{domain.name}</p>
-                {#if domain.domainEntries}
+        {/each}
+    </div>
+    <div class="divider" />
+    <div class="flex flex-wrap">
+        {#each $domains as domain}
+            <div class="card w-96 bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">Card title!</h2>
+                    <p>{domain.name}</p>
+                    {#if domain.domainEntries}{/if}
                     <p>{getDomainPointedIp(domain)}</p>
-                {/if}
-                <div class="card-actions justify-end">
-                    <button class="btn btn-primary">Buy Now</button>
+                    <div class="card-actions justify-end">
+                        <button class="btn btn-primary">Buy Now</button>
+                    </div>
                 </div>
             </div>
-        </div>
-    {/each}
-</div>
-<div class="flex flex-row my-8">
-    <button class="btn btn-primary btn-sm" on:click={refreshStores}>
-        Referesh
-    </button>
-</div>
+        {/each}
+    </div>
+    <div class="flex flex-row my-8" />
+</section>

@@ -1,8 +1,6 @@
 import { json, text, type RequestHandler } from "@sveltejs/kit";
 import type { Credentials } from "@aws-sdk/types";
 
-import type { Provider } from "@smithy/types";
-
 import { env } from "$env/dynamic/public";
 
 import {
@@ -21,25 +19,14 @@ import {
     type Domain,
     type Operation,
     GetDomainCommand,
+    ReleaseStaticIpCommand,
 } from "@aws-sdk/client-lightsail";
 import type { RequestEvent } from "./$types";
+import { Command, Region, Resource } from "../../lib/models";
 
 class MyCredentials implements Credentials {
     accessKeyId: string = env.PUBLIC_ACCESS_KEY ?? "";
     secretAccessKey: string = env.PUBLIC_SECRET ?? "";
-}
-// class MyClientDefaults implements ClientDefaults {
-//     credentialDefaultProvider?:
-//         | ((input: any) => Provider<Credentials>)
-//         | undefined = (input) => async () => {
-//             return new MyCredentials();
-//         };
-//     region?: string | Provider<string> | undefined
-// }
-//
-enum Regions {
-    EU_CENTRAL = 'eu-central-1',
-    US_EAST = 'us-east-1'
 }
 
 let domainClientDefaults = {
@@ -49,8 +36,6 @@ let domainClientDefaults = {
     region: "us-east-1",
 }
 
-// let euClient = new LightsailClient(new MyClientDefaults());
-//
 class DomainsRequestHandler {
     domainClient = new LightsailClient(domainClientDefaults);
     domains: Domain[] = [];
@@ -131,6 +116,12 @@ class RegionRequestHandler {
         return this.wereOperationsSuccessful(res.operations);
     }
 
+    async releaseStaticIp(static_ip_name: string) {
+        const releaseStaticIpCommand = new ReleaseStaticIpCommand({ staticIpName: static_ip_name });
+        const res = await this.client.send(releaseStaticIpCommand);
+        return this.wereOperationsSuccessful(res.operations);
+    }
+
     async getAttachedStaticIp(instance_name: string) {
         const instance = this.instances.find((i) => i.name === instance_name);
         if (!instance) return undefined;
@@ -175,48 +166,110 @@ class RegionRequestHandler {
         return res.domain;
     }
 
-    getDomainPointedIp(domain: Domain) {
-        return domain.domainEntries?.find((de) => de.type === 'A')?.target;
-    }
-
-    async getDomainPointedInstance(domain: Domain) {
-        const domainPointedIp = this.getDomainPointedIp(domain);
-        if (!domainPointedIp) return undefined;
-        const pointedInstance = this.instances.find((i) => i.publicIpAddress === domainPointedIp);
-        return pointedInstance;
-    }
-
-
-
-
-
-
 }
 
-const euCenteralHandler = new RegionRequestHandler(Regions.EU_CENTRAL);
+// const euCenteralHandler = new RegionRequestHandler(Regions.EU_CENTRAL);
 
 function sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+let handlersMap = new Map<string, RegionRequestHandler>();
+
 export async function POST(request: RequestEvent): Promise<Response> {
-    const searchParams = request.url.searchParams;
-    const resource = searchParams.get('resource');
-    let finalRes = {}
     try {
-        if (resource === 'staticIp') {
-            await euCenteralHandler.refreshStaticIps()
-            finalRes = euCenteralHandler.static_ips;
-        } else if (resource === 'instance') {
-            await euCenteralHandler.refreshInstances()
-            finalRes = euCenteralHandler.instances;
-        } else if (resource === 'domain') {
-            await euCenteralHandler.refreshDomains()
-            finalRes = euCenteralHandler.domains;
+        const searchParams = request.url.searchParams;
+        const command = searchParams.get('command');
+        const resource = searchParams.get('resource');
+        const region = searchParams.get('region');
+        const staticIp = searchParams.get(Resource.STATIC_IP);
+        const instance = searchParams.get(Resource.INSTANCE);
+        const domain = searchParams.get(Resource.DOMAIN);
+
+        if (!region) {
+            return json({ error: 'no region' });
         }
-    } catch (e) {
-        console.error(e);
+
+
+        let handler = handlersMap.get(region) ?? new RegionRequestHandler(region);
+        // NOTE: Performance optimization?
+        handlersMap.set(region, handler);
+        let res = null;
+        switch (command) {
+            case Command.GET_RESOURCE:
+                switch (resource) {
+                    case Resource.STATIC_IP:
+                        console.log(handler.static_ips);
+                        return json(handler.static_ips);
+                    case Resource.INSTANCE:
+                        return json(handler.instances);
+                    case Resource.DOMAIN:
+                        return json(handler.domains);
+                }
+
+            case Command.REFRESH_RESOURCE:
+                switch (resource) {
+                    case Resource.STATIC_IP:
+                        res = await handler.refreshStaticIps()
+                        if (!res) return json({ error: 'could not refresh static ips' });
+                        console.log(handler.static_ips);
+                        return json(handler.static_ips);
+                    case Resource.INSTANCE:
+                        res = await handler.refreshInstances()
+                        if (!res) return json({ error: 'could not refresh instances' });
+                        return json(handler.instances);
+                    case Resource.DOMAIN:
+                        res = await handler.refreshDomains()
+                        if (!res) return json({ error: 'could not refresh domains' });
+                        return json(handler.domains);
+                    default:
+                        return json({ error: 'unknown resource' });
+                }
+            case Command.ALLOCATE_IP:
+                if (staticIp) {
+                    res = await handler.allocateStaticIp(staticIp);
+                    if (!res) return json({ error: 'could not allocate static ip' });
+                    return json({ success: res });
+                } else {
+                    return json({ error: 'no ip name' });
+                }
+            case Command.RELEASE_IP:
+                if (staticIp) {
+                    res = await handler.releaseStaticIp(staticIp);
+                    if (!res) return json({ error: 'could not release static ip' });
+                    return json({ success: res });
+                } else {
+                    return json({ error: 'no ip name' });
+                }
+            case Command.DETACH_IP:
+                if (instance && !staticIp) {
+                    res = await handler.detachStaticIpFromInstance(instance);
+                    if (!res) return json({ error: 'could not detach static ip from instance' });
+                    return json({ success: res });
+                } else if (staticIp && !instance) {
+                    res = await handler.detachStaticIp(staticIp)
+                    if (!res) return json({ error: 'could not detach static ip' });
+                    return json({ success: res });
+                } else {
+                    return json({ error: 'only one of instance or static ip should be present' });
+                }
+            case Command.ATTACH_IP:
+                if (instance && staticIp) {
+                    res = await handler.attachStaticIpToInstance(instance, staticIp);
+                    if (!res) return json({ error: 'could not attach static ip to instance' });
+                    return json({ success: res });
+                } else {
+                    return json({ error: 'no instance or static ip present' });
+                }
+            default:
+                return json({ error: 'unknown command' });
+
+        }
+
     }
-    return json(finalRes);
+    catch (e) {
+        console.error(e);
+        return json({ error: 'unknown error' });
+    }
 };
 
