@@ -12,7 +12,7 @@ export async function callBackend(searchParams: URLSearchParams) {
     return res
 }
 
-export async function refreshResource(resource: string, region: string) {
+export async function refreshResource(region: string, resource: string) {
     let searchParams = new URLSearchParams();
     searchParams.set("region", region);
     searchParams.set("command", Command.REFRESH_RESOURCE);
@@ -22,7 +22,7 @@ export async function refreshResource(resource: string, region: string) {
     return resObj;
 }
 
-export async function getResource(resource: string, region: string) {
+export async function getResource(region: string, resource: string) {
     let searchParams = new URLSearchParams();
     searchParams.set("region", region);
     searchParams.set("command", Command.GET_RESOURCE);
@@ -39,6 +39,7 @@ export async function allocateStaticIP(region: string, new_name: string) {
     searchParams.set(Resource.STATIC_IP, new_name);
     const res = await callBackend(searchParams);
     console.log(res);
+    return res;
 }
 
 export async function detachStaticIp(region: string, static_ip_name: string) {
@@ -48,20 +49,35 @@ export async function detachStaticIp(region: string, static_ip_name: string) {
     searchParams.set(Resource.STATIC_IP, static_ip_name);
     let res = await callBackend(searchParams);
     console.log(res);
+    return res;
 }
+
+export async function detachStaticIpFromInstance(region: string, instance_name: string) {
+    let searchParams = new URLSearchParams();
+    searchParams.set("region", region);
+    searchParams.set("command", Command.DETACH_IP);
+    searchParams.set(Resource.INSTANCE, instance_name);
+    let res = await callBackend(searchParams);
+    console.log(res);
+    return res;
+}
+
+
 
 export async function attachStaticIP(
     region: string,
     static_ip_name: string,
     instance_name: string
 ) {
+    console.log("attachStaticIP", region, static_ip_name, instance_name);
     let searchParams = new URLSearchParams();
     searchParams.set("region", region);
     searchParams.set("command", Command.ATTACH_IP);
     searchParams.set(Resource.STATIC_IP, static_ip_name);
     searchParams.set(Resource.INSTANCE, instance_name);
-    const res = callBackend(searchParams);
-    console.log(res);
+    const res = await callBackend(searchParams);
+    console.warn(await res.json());
+    return res;
 }
 
 export async function releaseStaticIp(region: string, static_ip_name: string) {
@@ -71,4 +87,5 @@ export async function releaseStaticIp(region: string, static_ip_name: string) {
     searchParams.set(Resource.STATIC_IP, static_ip_name);
     const res = await callBackend(searchParams);
     console.log(res);
+    return res;
 }

@@ -1,6 +1,11 @@
 <script lang="ts">
     // TODO: Handle backend sent errors
-    import type { Domain, Instance, StaticIp } from "@aws-sdk/client-lightsail";
+    import {
+        RegionName,
+        type Domain,
+        type Instance,
+        type StaticIp,
+    } from "@aws-sdk/client-lightsail";
     import InstanceComponent from "./InstanceComponent.svelte";
 
     import { getDomainPointedIp } from "$lib/utils";
@@ -22,17 +27,17 @@
     let staticIps = getContext<Writable<StaticIp[]>>("staticIps");
     let domains = getContext<Writable<Domain[]>>("domains");
 
-    let selectedRegion = "eu-central-1";
+    let selectedRegion = RegionName.EU_CENTRAL_1;
 
     export async function getStores(region: string) {
-        instances.set(await getResource(Resource.INSTANCE, region));
-        staticIps.set(await getResource(Resource.STATIC_IP, region));
-        domains.set(await getResource(Resource.DOMAIN, region));
+        instances.set(await getResource(region, Resource.INSTANCE));
+        staticIps.set(await getResource(region, Resource.STATIC_IP));
+        domains.set(await getResource(region, Resource.DOMAIN));
     }
     export async function refreshStores(region: string) {
-        instances.set(await refreshResource(Resource.INSTANCE, region));
-        staticIps.set(await refreshResource(Resource.STATIC_IP, region));
-        domains.set(await refreshResource(Resource.DOMAIN, region));
+        instances.set(await refreshResource(region, Resource.INSTANCE));
+        staticIps.set(await refreshResource(region, Resource.STATIC_IP));
+        domains.set(await refreshResource(region, Resource.DOMAIN));
     }
 </script>
 
@@ -85,7 +90,10 @@
                             class="btn btn-primary"
                             on:click={async () => {
                                 if (ip.name) {
-                                    await detachStaticIp(ip.name);
+                                    await detachStaticIp(
+                                        selectedRegion,
+                                        ip.name
+                                    );
                                 }
                             }}>Detach</button
                         >
@@ -101,7 +109,7 @@
                 <div class="card-body">
                     <h2 class="card-title">Card title!</h2>
                     <p>{domain.name}</p>
-                    {#if domain.domainEntries}{/if}
+                    {#if domain.domainEntries}<p>Empty Domain</p>{/if}
                     <p>{getDomainPointedIp(domain)}</p>
                     <div class="card-actions justify-end">
                         <button class="btn btn-primary">Buy Now</button>

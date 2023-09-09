@@ -1,8 +1,4 @@
-export enum Region {
-    EU_CENTRAL = 'eu-central-1',
-    US_EAST = 'us-east-1'
-}
-
+export { RegionName } from "@aws-sdk/client-lightsail";
 export enum Resource {
     STATIC_IP = 'staticIp',
     INSTANCE = 'instance',
@@ -15,5 +11,5 @@ export enum Command {
     ALLOCATE_IP = 'allocate_ip',
     RELEASE_IP = 'release_ip',
     DETACH_IP = 'detach_ip',
-    ATTACH_IP = 'detach_ip',
+    ATTACH_IP = 'attach_ip',
 }

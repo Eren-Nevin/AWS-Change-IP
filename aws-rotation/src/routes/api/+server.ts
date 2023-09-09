@@ -22,7 +22,7 @@ import {
     ReleaseStaticIpCommand,
 } from "@aws-sdk/client-lightsail";
 import type { RequestEvent } from "./$types";
-import { Command, Region, Resource } from "../../lib/models";
+import { Command, Resource, RegionName } from "../../lib/models";
 
 class MyCredentials implements Credentials {
     accessKeyId: string = env.PUBLIC_ACCESS_KEY ?? "";
@@ -199,7 +199,6 @@ export async function POST(request: RequestEvent): Promise<Response> {
             case Command.GET_RESOURCE:
                 switch (resource) {
                     case Resource.STATIC_IP:
-                        console.log(handler.static_ips);
                         return json(handler.static_ips);
                     case Resource.INSTANCE:
                         return json(handler.instances);
@@ -212,7 +211,6 @@ export async function POST(request: RequestEvent): Promise<Response> {
                     case Resource.STATIC_IP:
                         res = await handler.refreshStaticIps()
                         if (!res) return json({ error: 'could not refresh static ips' });
-                        console.log(handler.static_ips);
                         return json(handler.static_ips);
                     case Resource.INSTANCE:
                         res = await handler.refreshInstances()

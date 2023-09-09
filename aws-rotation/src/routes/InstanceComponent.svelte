@@ -1,8 +1,14 @@
 <script lang="ts">
-    import type { Domain, Instance } from "@aws-sdk/client-lightsail";
+    import {
+        RegionName,
+        type Domain,
+        type Instance,
+    } from "@aws-sdk/client-lightsail";
     import { getContext } from "svelte";
     import type { Writable } from "svelte/store";
     import { getDomainPointedIp, getInstanceDomain } from "../lib/utils";
+
+    import { changeInstanceIP } from "../lib/strategies";
 
     export let instance: Instance;
     $: instanceDisabled = instance.state?.name !== "running";
@@ -10,7 +16,6 @@
 
     let domains = getContext<Writable<Domain[]>>("domains");
     $: connectedDomain = getInstanceDomain(instance, $domains);
-
 </script>
 
 <div class="card w-96 bg-base-100 shadow-xl">
@@ -23,11 +28,20 @@
         </p>
         {#if connectedDomain}
             <p>Domain: {connectedDomain.name}</p>
-            {:else}
+        {:else}
             <p>Domain: Not connected</p>
         {/if}
         <div class="card-actions justify-end">
-            <button class="btn btn-primary">Buy Now</button>
+            <button
+                class="btn btn-primary"
+                on:click={async () => {
+                    const res = await changeInstanceIP(
+                        instance.location?.regionName ?? "",
+                        instance
+                    );
+                    console.warn("Final Res", res);
+                }}>Change Ip</button
+            >
         </div>
     </div>
 </div>
