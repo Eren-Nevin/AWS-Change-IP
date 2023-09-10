@@ -18,6 +18,7 @@ export async function refreshResource(region: string, resource: string) {
     searchParams.set("resource", resource);
     let res = await callBackend(searchParams);
     const resObj = await res.json();
+    console.warn(resObj);
     return resObj;
 }
 
@@ -28,6 +29,7 @@ export async function getResource(region: string, resource: string) {
     searchParams.set("resource", resource);
     let res = await callBackend(searchParams);
     const resObj = await res.json();
+    console.warn(resObj);
     return resObj;
 }
 

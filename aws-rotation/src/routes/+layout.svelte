@@ -3,13 +3,12 @@
     import type { Domain, Instance, StaticIp } from "@aws-sdk/client-lightsail";
     import "../app.postcss";
     import { setContext } from "svelte";
+    import type { RegionResources } from "../lib/models";
 
-    const instances = writable<Instance[]>([]);
-    const staticIps = writable<StaticIp[]>([]);
+    const regionResources = writable<RegionResources[]>([]);
     const domains = writable<Domain[]>([]);
 
-    setContext("instances", instances);
-    setContext("staticIps", staticIps);
+    setContext("resources", regionResources);
     setContext("domains", domains);
 </script>
 
