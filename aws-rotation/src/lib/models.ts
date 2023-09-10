@@ -26,24 +26,3 @@ export enum Command {
     POINT_DOMAIN = 'point_domain',
 }
 
-
-// export async function refreshStores(region: string) {
-//         let instancesRes = await refreshResource(region, Resource.INSTANCE);
-//         if (Array.isArray(instancesRes)) {
-//             instances.set(instancesRes);
-//         } else {
-//             instances.set([]);
-//         }
-//         let staticIpsRes = await refreshResource(region, Resource.STATIC_IP);
-//         if (Array.isArray(staticIpsRes)) {
-//             staticIps.set(staticIpsRes);
-//         } else {
-//             staticIps.set([]);
-//         }
-//         let domainsRes = await refreshResource(region, Resource.DOMAIN);
-//         if (Array.isArray(domainsRes)) {
-//             domains.set(domainsRes);
-//         } else {
-//             domains.set([]);
-//         }
-//     }

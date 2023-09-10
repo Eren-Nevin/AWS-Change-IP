@@ -3,20 +3,28 @@ import type { Writable } from "svelte/store";
 import { refreshResource } from "./backend";
 import { RegionResources, Resource } from "./models";
 
-export async function updateRegionResources(region: RegionName, resource: Writable<RegionResources[]>) {
+export async function updateAllRegionResources(regionResources: Writable<RegionResources[]>) {
+    let regions = Object.values(RegionName);
+    for (let region of regions) {
+        await updateRegionResources(region, regionResources);
+    }
+}
+
+export async function updateRegionResources(region: RegionName, regionResources: Writable<RegionResources[]>) {
 
     let instances: null | Instance[] = null;
     let staticIps: null | Instance[] = null;
     let instancesRes = await refreshResource(region, Resource.INSTANCE);
     if (Array.isArray(instancesRes)) {
         instances = instancesRes;
+        console.log(instances);
     }
     let staticIpsRes = await refreshResource(region, Resource.STATIC_IP);
     if (Array.isArray(staticIpsRes)) {
         staticIps = staticIpsRes;
     }
 
-    resource.update((resources) => {
+    regionResources.update((resources) => {
         let regionResources = resources.find((r) => r.region === region);
         if (!regionResources) {
             regionResources = new RegionResources();
