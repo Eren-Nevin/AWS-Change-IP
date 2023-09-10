@@ -20,6 +20,9 @@ import {
     type Operation,
     GetDomainCommand,
     ReleaseStaticIpCommand,
+    UpdateDomainEntryCommand,
+    DeleteDomainEntryCommand,
+    CreateDomainEntryCommand,
 } from "@aws-sdk/client-lightsail";
 import type { RequestEvent } from "./$types";
 import { Command, Resource, RegionName } from "../../lib/models";
@@ -33,7 +36,7 @@ let domainClientDefaults = {
     credentialDefaultProvider: (input: any) => async () => {
         return new MyCredentials();
     },
-    region: "us-east-1",
+    region: RegionName.US_EAST_1,
 }
 
 class DomainsRequestHandler {
@@ -156,6 +159,7 @@ class RegionRequestHandler {
         const res = await this.domainClient.send(getDomainsCommand);
         if (res.domains) {
             this.domains = res.domains;
+            console.log(this.domains[0].domainEntries);
             return true;
         }
     }
@@ -165,6 +169,50 @@ class RegionRequestHandler {
         const res = await this.domainClient.send(getDomainInfoCommand);
         return res.domain;
     }
+
+    async clearDomainIps(domain_name: string) {
+        const domain = await this.getSpecificDomainInfo(domain_name);
+        if (!domain) return false;
+        const domainEntries = domain.domainEntries;
+        if (!domainEntries) return false;
+        const typeAEntries = domainEntries.filter((de) => de.type === "A");
+
+        for (const entry of typeAEntries) {
+            const deleteDomainEntryCommand = new DeleteDomainEntryCommand({
+                domainName: domain_name,
+                domainEntry: entry,
+            });
+            const res = await this.domainClient.send(deleteDomainEntryCommand);
+            if (!res.operation) return false;
+        }
+        return true;
+    }
+
+    async pointDomainToIp(domain_name: string, ip_address: string) {
+        const createDomainEntryCommand = new CreateDomainEntryCommand({
+            domainName: domain_name,
+            domainEntry: {
+                name: domain_name,
+                type: "A",
+                target: ip_address,
+            }
+        });
+        const res = await this.domainClient.send(createDomainEntryCommand);
+        return res.operation ? true : false;
+    }
+
+
+    // async attachDomainToIp(domain_name: string, static_ip_name: string) {
+    //     const attachDomainCommand = new UpdateDomainEntryCommand({
+    //         domainName: domain_name,
+    //         domainEntry: {
+    //             name: domain_name,
+    //             type: "A",
+    //             target: static_ip_name,
+    //         }
+    //
+    //     });
+    // }
 
 }
 
@@ -185,6 +233,9 @@ export async function POST(request: RequestEvent): Promise<Response> {
         const staticIp = searchParams.get(Resource.STATIC_IP);
         const instance = searchParams.get(Resource.INSTANCE);
         const domain = searchParams.get(Resource.DOMAIN);
+
+        // This is only used when pointing domain to ip, which is address itself not name
+        const ip_address = searchParams.get('ip_address');
 
         if (!region) {
             return json({ error: 'no region' });
@@ -259,6 +310,17 @@ export async function POST(request: RequestEvent): Promise<Response> {
                 } else {
                     return json({ error: 'no instance or static ip present' });
                 }
+            case Command.DELETE_DOMAIN_IPS:
+                if (!domain) return json({ error: 'no domain' });
+                res = await handler.clearDomainIps(domain);
+                if (!res) return json({ error: 'could not clear domain ips' });
+                return json({ success: res });
+            case Command.POINT_DOMAIN:
+                if (!domain) return json({ error: 'no domain' });
+                if (!ip_address) return json({ error: 'no ip address' });
+                res = await handler.pointDomainToIp(domain, ip_address);
+                if (!res) return json({ error: 'could not point domain to ip_address' });
+                return json({ success: res });
             default:
                 return json({ error: 'unknown command' });
 

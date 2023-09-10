@@ -12,4 +12,6 @@ export enum Command {
     RELEASE_IP = 'release_ip',
     DETACH_IP = 'detach_ip',
     ATTACH_IP = 'attach_ip',
+    DELETE_DOMAIN_IPS = 'delete_domain_ips',
+    POINT_DOMAIN = 'point_domain',
 }
