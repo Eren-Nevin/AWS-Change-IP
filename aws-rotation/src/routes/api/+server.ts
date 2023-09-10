@@ -177,6 +177,8 @@ class RegionRequestHandler {
         if (!domainEntries) return false;
         const typeAEntries = domainEntries.filter((de) => de.type === "A");
 
+        console.log("Deleting domain entries", typeAEntries);
+
         for (const entry of typeAEntries) {
             const deleteDomainEntryCommand = new DeleteDomainEntryCommand({
                 domainName: domain_name,

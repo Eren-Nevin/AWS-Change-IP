@@ -8,7 +8,7 @@
     import type { Writable } from "svelte/store";
     import { getDomainPointedIp, getInstanceDomain } from "../lib/utils";
 
-    import { changeInstanceIP } from "../lib/strategies";
+    import { rotateInstance } from "../lib/strategies";
 
     export let instance: Instance;
     $: instanceDisabled = instance.state?.name !== "running";
@@ -35,7 +35,7 @@
             <button
                 class="btn btn-primary"
                 on:click={async () => {
-                    const res = await changeInstanceIP(
+                    const res = await rotateInstance(
                         instance.location?.regionName ?? "",
                         instance
                     );

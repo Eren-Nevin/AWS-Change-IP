@@ -37,7 +37,6 @@ export async function allocateStaticIP(region: string, new_name: string) {
     searchParams.set(Resource.STATIC_IP, new_name);
     searchParams.set("command", Command.ALLOCATE_IP);
     const res = await callBackend(searchParams);
-    console.log(res);
     return await res.json();
 }
 
@@ -47,7 +46,6 @@ export async function detachStaticIp(region: string, static_ip_name: string) {
     searchParams.set("command", Command.DETACH_IP);
     searchParams.set(Resource.STATIC_IP, static_ip_name);
     let res = await callBackend(searchParams);
-    console.log(res);
     return await res.json();
 }
 
@@ -57,7 +55,6 @@ export async function detachStaticIpFromInstance(region: string, instance_name: 
     searchParams.set("command", Command.DETACH_IP);
     searchParams.set(Resource.INSTANCE, instance_name);
     let res = await callBackend(searchParams);
-    console.log(res);
     return await res.json();
 }
 
@@ -66,16 +63,14 @@ export async function detachStaticIpFromInstance(region: string, instance_name: 
 export async function attachStaticIP(
     region: string,
     static_ip_name: string,
-) {
     instance_name: string
-    console.log("attachStaticIP", region, static_ip_name, instance_name);
+) {
     let searchParams = new URLSearchParams();
     searchParams.set("region", region);
     searchParams.set("command", Command.ATTACH_IP);
     searchParams.set(Resource.STATIC_IP, static_ip_name);
     searchParams.set(Resource.INSTANCE, instance_name);
     const res = await callBackend(searchParams);
-    console.warn(await res.json());
     return await res.json();
 }
 
@@ -85,7 +80,6 @@ export async function releaseStaticIp(region: string, static_ip_name: string) {
     searchParams.set("command", Command.RELEASE_IP);
     searchParams.set(Resource.STATIC_IP, static_ip_name);
     const res = await callBackend(searchParams);
-    console.log(res);
     return await res.json();
 }
 
@@ -95,7 +89,6 @@ export async function deleteDomainIPs(region: string, domain_name: string) {
     searchParams.set("command", Command.DELETE_DOMAIN_IPS);
     searchParams.set(Resource.DOMAIN, domain_name);
     const res = await callBackend(searchParams);
-    console.log(res);
     return await res.json();
 }
 
@@ -106,7 +99,6 @@ export async function pointDomainToIP(region: string, domain_name: string, ip_ad
     searchParams.set(Resource.DOMAIN, domain_name);
     searchParams.set("ip_address", ip_address);
     const res = await callBackend(searchParams);
-    console.log(res);
     return await res.json();
 }
 
