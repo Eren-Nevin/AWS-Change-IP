@@ -4,7 +4,7 @@
     import type { Writable } from "svelte/store";
     import { getDomainPointedIp, getInstanceDomain } from "../lib/utils";
 
-    import { rotateInstance } from "../lib/strategies";
+    import { rotateInstance, sendRotateInstanceToServer } from "../lib/strategies";
     import EditModal from "./EditModal.svelte";
     import type { FixedTimeCron, InstanceCron } from "$lib/models";
 
@@ -68,6 +68,16 @@
                     );
                     console.warn("Final Res", res);
                 }}>Change Ip</button
+            >
+            <button
+                class="btn btn-primary"
+                on:click={async () => {
+                    const res = await sendRotateInstanceToServer(
+                        instance.location?.regionName ?? "",
+                        instance
+                    );
+                    console.warn("Final Res", res);
+                }}>Change IP (Server)</button
             >
             <button class="btn btn-primary" on:click={async () => {}}
                 >Stop Ip Change</button

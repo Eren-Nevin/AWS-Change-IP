@@ -27,6 +27,7 @@ import {
 import type { RequestEvent } from "./$types";
 import { Command, Resource, RegionName } from "../../lib/models";
 import { attachEmptyCronToInstances, readCrons, saveCrons } from "./crons";
+import { generateStaticIpName, wait } from "$lib/utils";
 
 class MyCredentials implements Credentials {
     accessKeyId: string = env.PUBLIC_ACCESS_KEY ?? "";
@@ -160,7 +161,7 @@ class RegionRequestHandler {
         const res = await this.domainClient.send(getDomainsCommand);
         if (res.domains) {
             this.domains = res.domains;
-            console.log(this.domains[0].domainEntries);
+            // console.log(this.domains[0].domainEntries);
             return true;
         }
     }
@@ -318,6 +319,15 @@ export async function POST(request: RequestEvent): Promise<Response> {
                 console.warn(requestBody)
                 saveCrons(requestBody);
                 return json({ success: true });
+            case Command.ROTATE_IP:
+                if (!instance) return json({ error: 'no instance' });
+                res = await rotateInstance(region, handler.instances.find((i) => i.name === instance)!);
+                if (res) {
+                    return json({ success: res });
+                } else {
+                    return json({ error: 'could not rotate ip' });
+                }
+
             default:
                 return json({ error: 'unknown command' });
 
@@ -330,3 +340,74 @@ export async function POST(request: RequestEvent): Promise<Response> {
     }
 };
 
+
+// TODO: Add error handling
+async function rotateInstance(region: string, instance: Instance) {
+    if (!instance.name) return false;
+    if (!instance.isStaticIp) return false;
+    let handler = handlersMap.get(region) ?? new RegionRequestHandler(region);
+    const refreshedStaticIPs = await handler.refreshStaticIps()
+    console.log(refreshedStaticIPs);
+    // if (!refreshedStaticIPs) return json({ error: 'could not refresh static ips' });
+    const refreshedInstances = await handler.refreshInstances()
+    console.log(refreshedInstances);
+    // if (!refreshedInstances) return json({ error: 'could not refresh instances' });
+    const refreshedDomains = await handler.refreshDomains()
+    console.log(refreshedDomains);
+    // if (!refreshedDomains) return json({ error: 'could not refresh domains' });
+    attachEmptyCronToInstances(handler.instances)
+
+    const currentStaticIpAddress = instance.publicIpAddress;
+    const currentStaticIp = handler.static_ips.find((ip) => ip.ipAddress === currentStaticIpAddress);
+    const currentStaticIpName = currentStaticIp?.name;
+
+    const currentDomain = handler.domains.find((d) => d.domainEntries?.find((de) => de.type === "A")?.target === currentStaticIpAddress);
+
+    console.log("Current domain", currentDomain);
+    if (!currentStaticIp || !currentStaticIpName || !currentDomain) return false;
+
+    let newIpName = generateStaticIpName(Math.floor(Math.random() * 10000000));
+
+    console.log("Allocating New Static IP");
+    let res = await handler.allocateStaticIp(newIpName);
+    console.log(res);
+
+    await wait(1000);
+
+    // TODO: Make sure a single domain is not pointed to multiple IPs
+    console.log("Deleting Domain IPs");
+    res = await handler.clearDomainIps(currentDomain?.name!);
+    console.log(res);
+
+    console.log("Detaching Previous IP");
+    res = await handler.detachStaticIpFromInstance(instance.name);
+    console.log(res);
+
+    await wait(1000);
+
+    console.log("Attaching New IP");
+    res = await handler.attachStaticIpToInstance(instance.name, newIpName);
+    console.log(res);
+
+    await wait(1000);
+
+    console.log("Releasing Previous IP");
+    res = await handler.releaseStaticIp(currentStaticIpName);
+    console.log(res);
+
+    await wait(1000);
+
+    const newInstancesRefreshed = await handler.refreshInstances()
+    console.log(newInstancesRefreshed);
+
+    const myInstance = handler.instances.find((i) => i.name === instance.name);
+    if (!myInstance) return false;
+
+    console.log("Pointing Domain to New IP");
+    res = await handler.pointDomainToIp(currentDomain?.name!, myInstance.publicIpAddress!);
+    console.log(res);
+
+    return res;
+
+
+}

@@ -53,7 +53,7 @@
         console.log("STATE");
         instanceCrons.subscribe(async (crons) => {
             console.warn("Crons", crons);
-            // await saveCronsToServer(crons);
+            await saveCronsToServer(crons);
         });
     });
 </script>

@@ -1,5 +1,5 @@
 import type { Domain, Instance, StaticIp } from "@aws-sdk/client-lightsail";
-import { allocateStaticIP, attachStaticIP, deleteDomainIPs, detachStaticIp, detachStaticIpFromInstance, pointDomainToIP, refreshResource, releaseStaticIp } from "./backend";
+import { allocateStaticIP, attachStaticIP, deleteDomainIPs, detachStaticIp, detachStaticIpFromInstance, pointDomainToIP, refreshResource, releaseStaticIp, sendRotateInstanceIP } from "./backend";
 import { Resource } from "./models";
 import { generateStaticIpName, wait } from "./utils";
 
@@ -70,6 +70,10 @@ export async function rotateInstance(region: string, instance: Instance) {
     console.log(res);
 
     return res;
+}
 
 
+export async function sendRotateInstanceToServer(region: string, instance: Instance) {
+    const res = sendRotateInstanceIP(region, instance.name!);
+    return res;
 }

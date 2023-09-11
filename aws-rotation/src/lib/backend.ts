@@ -1,5 +1,6 @@
-import { Command, InstanceCron, IntervalCron, RegionName, Resource } from "./models";
+import { Command, FixedTimeCron, InstanceCron, IntervalCron, RegionName, Resource } from "./models";
 
+// TODO: Change all instance names to instance ids
 // TODO: Remove region from domain related functions
 export async function callBackend(searchParams: URLSearchParams, body = {}) {
     let res = await fetch(`/api?${searchParams}`, {
@@ -39,7 +40,9 @@ function _convertServerInstanceCronToInstanceCron(resInstanceCron) {
     let instanceCron = new InstanceCron(
         resInstanceCron.instanceId,
         new IntervalCron(resInstanceCron.intervalCron.hours, resInstanceCron.intervalCron.minutes),
-        resInstanceCron.fixedTimeCrons,
+        resInstanceCron.fixedTimeCrons.map((e) => new FixedTimeCron(e.hour, e.minute)),
+
+        // resInstanceCron.fixedTimeCrons,
         resInstanceCron.useFixedTimeCron
     );
     return instanceCron;
@@ -133,6 +136,15 @@ export async function pointDomainToIP(region: string, domain_name: string, ip_ad
     searchParams.set("command", Command.POINT_DOMAIN);
     searchParams.set(Resource.DOMAIN, domain_name);
     searchParams.set("ip_address", ip_address);
+    const res = await callBackend(searchParams);
+    return await res.json();
+}
+
+export async function sendRotateInstanceIP(region: string, instance_name: string) {
+    let searchParams = new URLSearchParams();
+    searchParams.set("region", region);
+    searchParams.set("command", Command.ROTATE_IP);
+    searchParams.set(Resource.INSTANCE, instance_name);
     const res = await callBackend(searchParams);
     return await res.json();
 }
