@@ -6,7 +6,8 @@ export { RegionName } from "@aws-sdk/client-lightsail";
 export enum Resource {
     STATIC_IP = 'staticIp',
     INSTANCE = 'instance',
-    DOMAIN = 'domain'
+    DOMAIN = 'domain',
+    CRON = 'cron',
 }
 
 export class FixedTimeCron {
@@ -50,5 +51,7 @@ export enum Command {
     ATTACH_IP = 'attach_ip',
     DELETE_DOMAIN_IPS = 'delete_domain_ips',
     POINT_DOMAIN = 'point_domain',
+    GET_CRONS = 'get_crons',
+    SET_CRONS = 'set_crons'
 }
 

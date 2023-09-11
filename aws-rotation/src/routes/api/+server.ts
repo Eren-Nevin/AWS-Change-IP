@@ -26,6 +26,7 @@ import {
 } from "@aws-sdk/client-lightsail";
 import type { RequestEvent } from "./$types";
 import { Command, Resource, RegionName } from "../../lib/models";
+import { attachEmptyCronToInstances, readCrons, saveCrons } from "./crons";
 
 class MyCredentials implements Credentials {
     accessKeyId: string = env.PUBLIC_ACCESS_KEY ?? "";
@@ -203,22 +204,7 @@ class RegionRequestHandler {
         return res.operation ? true : false;
     }
 
-
-    // async attachDomainToIp(domain_name: string, static_ip_name: string) {
-    //     const attachDomainCommand = new UpdateDomainEntryCommand({
-    //         domainName: domain_name,
-    //         domainEntry: {
-    //             name: domain_name,
-    //             type: "A",
-    //             target: static_ip_name,
-    //         }
-    //
-    //     });
-    // }
-
 }
-
-// const euCenteralHandler = new RegionRequestHandler(Regions.EU_CENTRAL);
 
 function sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -268,6 +254,7 @@ export async function POST(request: RequestEvent): Promise<Response> {
                     case Resource.INSTANCE:
                         res = await handler.refreshInstances()
                         if (!res) return json({ error: 'could not refresh instances' });
+                        attachEmptyCronToInstances(handler.instances)
                         return json(handler.instances);
                     case Resource.DOMAIN:
                         res = await handler.refreshDomains()
@@ -323,6 +310,14 @@ export async function POST(request: RequestEvent): Promise<Response> {
                 res = await handler.pointDomainToIp(domain, ip_address);
                 if (!res) return json({ error: 'could not point domain to ip_address' });
                 return json({ success: res });
+            case Command.GET_CRONS:
+                const crons = readCrons();
+                return json({ success: true, payload: crons });
+            case Command.SET_CRONS:
+                const requestBody = await request.request.json();
+                console.warn(requestBody)
+                saveCrons(requestBody);
+                return json({ success: true });
             default:
                 return json({ error: 'unknown command' });
 

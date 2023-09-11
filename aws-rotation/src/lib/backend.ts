@@ -1,14 +1,48 @@
-import { Command, Resource } from "./models";
+import { Command, InstanceCron, IntervalCron, RegionName, Resource } from "./models";
 
-export async function callBackend(searchParams: URLSearchParams) {
+// TODO: Remove region from domain related functions
+export async function callBackend(searchParams: URLSearchParams, body = {}) {
     let res = await fetch(`/api?${searchParams}`, {
         method: "POST",
-        body: JSON.stringify({}),
+        body: JSON.stringify(body),
         headers: {
             "content-type": "application/json",
         },
     });
     return res
+}
+
+export async function readCronsFromServer(): Promise<InstanceCron[]> {
+    let searchParams = new URLSearchParams();
+    searchParams.set("region", RegionName.US_EAST_1);
+    searchParams.set("command", Command.GET_CRONS);
+    let res = await callBackend(searchParams);
+    const resObj = await res.json();
+    if (resObj['success']) {
+        return resObj['payload'].map((e) => _convertServerInstanceCronToInstanceCron(e));
+    }
+    else {
+        throw new Error(resObj['error']);
+    }
+}
+
+export async function sendCronsToServer(crons: InstanceCron[]) {
+    let searchParams = new URLSearchParams();
+    searchParams.set("region", RegionName.US_EAST_1);
+    searchParams.set("command", Command.SET_CRONS);
+    let res = await callBackend(searchParams, crons);
+    const resObj = await res.json();
+    return resObj;
+}
+
+function _convertServerInstanceCronToInstanceCron(resInstanceCron) {
+    let instanceCron = new InstanceCron(
+        resInstanceCron.instanceId,
+        new IntervalCron(resInstanceCron.intervalCron.hours, resInstanceCron.intervalCron.minutes),
+        resInstanceCron.fixedTimeCrons,
+        resInstanceCron.useFixedTimeCron
+    );
+    return instanceCron;
 }
 
 export async function refreshResource(region: string, resource: string) {
@@ -18,7 +52,6 @@ export async function refreshResource(region: string, resource: string) {
     searchParams.set("resource", resource);
     let res = await callBackend(searchParams);
     const resObj = await res.json();
-    console.warn(resObj);
     return resObj;
 }
 

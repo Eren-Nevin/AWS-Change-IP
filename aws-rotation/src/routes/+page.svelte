@@ -17,6 +17,7 @@
         updateDomains,
         updateRegionResources,
         updateCrons,
+        saveCronsToServer,
     } from "$lib/logic";
 
     let regionResources = getContext<Writable<RegionResources[]>>("resources");
@@ -44,14 +45,15 @@
         } else {
             await updateRegionResources(selectedRegion, regionResources);
         }
-        await updateCrons($regionResources, instanceCrons);
+        await updateCrons(instanceCrons);
         refreshing = false;
     }
 
     onMount(async () => {
         console.log("STATE");
-        instanceCrons.subscribe((crons) => {
+        instanceCrons.subscribe(async (crons) => {
             console.warn("Crons", crons);
+            // await saveCronsToServer(crons);
         });
     });
 </script>
