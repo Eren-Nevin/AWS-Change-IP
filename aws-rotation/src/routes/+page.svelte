@@ -7,19 +7,22 @@
         type StaticIp,
     } from "@aws-sdk/client-lightsail";
 
-    import { getContext } from "svelte";
+    import { getContext, onMount } from "svelte";
     import type { Writable } from "svelte/store";
 
     import InstancesSegment from "./InstancesSegment.svelte";
-    import type { RegionResources } from "../lib/models";
+    import type { InstanceCron, RegionResources } from "../lib/models";
     import {
         updateAllRegionResources,
         updateDomains,
         updateRegionResources,
+        updateCrons,
     } from "$lib/logic";
 
     let regionResources = getContext<Writable<RegionResources[]>>("resources");
     let domains = getContext<Writable<Domain[]>>("domains");
+    let instanceCrons =
+        getContext<Writable<Map<string, InstanceCron>>>("crons");
 
     let selectedRegion: RegionName = RegionName.EU_CENTRAL_1;
 
@@ -41,8 +44,16 @@
         } else {
             await updateRegionResources(selectedRegion, regionResources);
         }
+        await updateCrons($regionResources, instanceCrons);
         refreshing = false;
     }
+
+    onMount(async () => {
+        console.log("STATE");
+        instanceCrons.subscribe((crons) => {
+            console.warn("Crons", crons);
+        });
+    });
 </script>
 
 <section class="container border rounded-xl border-gray-400 p-8 m-12">
@@ -83,6 +94,15 @@
             }}
         >
             Referesh
+        </button>
+        <button
+            class="btn btn-primary"
+            on:click={async () => {
+                // await updateRegionResources(selectedRegion, regionResources);
+                console.warn("Crons", $instanceCrons);
+            }}
+        >
+            Cron
         </button>
     </div>
 </section>

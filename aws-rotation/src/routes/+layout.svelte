@@ -3,13 +3,15 @@
     import type { Domain, Instance, StaticIp } from "@aws-sdk/client-lightsail";
     import "../app.postcss";
     import { setContext } from "svelte";
-    import type { RegionResources } from "../lib/models";
+    import type { RegionResources, InstanceCron } from "../lib/models";
 
     const regionResources = writable<RegionResources[]>([]);
     const domains = writable<Domain[]>([]);
+    const instanceCronMap = writable<Map<string, InstanceCron>>(new Map());
 
     setContext("resources", regionResources);
     setContext("domains", domains);
+    setContext("crons", instanceCronMap);
 </script>
 
 <slot />

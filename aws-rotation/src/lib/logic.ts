@@ -1,13 +1,30 @@
 import { RegionName, type Domain, type Instance, type StaticIp } from "@aws-sdk/client-lightsail";
 import type { Writable } from "svelte/store";
 import { refreshResource } from "./backend";
-import { RegionResources, Resource } from "./models";
+import { InstanceCron, IntervalCron, RegionResources, Resource } from "./models";
 
 export async function updateAllRegionResources(regionResources: Writable<RegionResources[]>) {
     let regions = Object.values(RegionName);
     for (let region of regions) {
         await updateRegionResources(region, regionResources);
     }
+}
+
+export async function updateCrons(regionResource: RegionResources[], instanceCrons: Writable<Map<string, InstanceCron>>) {
+    for (let resource of regionResource) {
+        for (let instance of resource.instances) {
+            const instanceCron = await readInstanceCronFromServer(instance);
+            instanceCrons.update((crons) => {
+                crons.set(instance.arn!, instanceCron);
+                return crons;
+            })
+        }
+    }
+}
+
+export async function readInstanceCronFromServer(instance: Instance) {
+    const instanceCron = new InstanceCron(instance.arn!, new IntervalCron(0, 0), [], false);
+    return instanceCron;
 }
 
 export async function updateRegionResources(region: RegionName, regionResources: Writable<RegionResources[]>) {

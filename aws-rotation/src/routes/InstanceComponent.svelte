@@ -1,12 +1,12 @@
 <script lang="ts">
     import type { Domain, Instance } from "@aws-sdk/client-lightsail";
-    import { getContext } from "svelte";
+    import { getContext, onMount } from "svelte";
     import type { Writable } from "svelte/store";
     import { getDomainPointedIp, getInstanceDomain } from "../lib/utils";
 
     import { rotateInstance } from "../lib/strategies";
-    import type { FixedTimeCron, IntervalCron } from "$lib/models";
     import EditModal from "./EditModal.svelte";
+    import type { FixedTimeCron, InstanceCron } from "$lib/models";
 
     export let instance: Instance;
     $: instanceDisabled = instance.state?.name !== "running";
@@ -15,8 +15,11 @@
     let domains = getContext<Writable<Domain[]>>("domains");
     $: connectedDomain = getInstanceDomain(instance, $domains);
 
-    let fixedTimes: FixedTimeCron[] = [];
-    let intervalTime: IntervalCron = { hours: 0, minutes: 0};
+    let instanceCrons =
+        getContext<Writable<Map<string, InstanceCron>>>("crons");
+
+    $: instanceCron = $instanceCrons.get(instance.arn ?? "");
+
     let editModal: EditModal;
 </script>
 
@@ -44,6 +47,17 @@
         {:else}
             <p>Domain: Not connected</p>
         {/if}
+        {#if instanceCron?.useFixedTimeCron}
+            <p>Fixed</p>
+            {#each instanceCron.fixedTimeCrons as fixedTimeCron}
+                <p>
+                    {fixedTimeCron}
+                </p>
+            {/each}
+        {:else}
+            <p>Interval</p>
+            <p>{instanceCron?.intervalCron}</p>
+        {/if}
         <div class="card-actions justify-end">
             <button
                 class="btn btn-primary"
@@ -61,4 +75,4 @@
         </div>
     </div>
 </div>
-<EditModal bind:this={editModal} {instance} bind:fixedTimes bind:intervalTime/>
+<EditModal bind:this={editModal} {instance} instanceCronCopy={instanceCron} />

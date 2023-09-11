@@ -12,10 +12,26 @@ export enum Resource {
 export class FixedTimeCron {
     constructor(public hour: number, public minute: number) {
     }
+    toString() {
+        return `At ${this.hour}:${this.minute}`
+    }
 }
 
 export class IntervalCron {
     constructor(public hours: number, public minutes: number) {
+    }
+    toString() {
+        return `Every ${this.hours}H:${this.minutes}M`
+    }
+}
+
+export class InstanceCron {
+    constructor(
+        public instanceId: string,
+        public intervalCron: IntervalCron,
+        public fixedTimeCrons: FixedTimeCron[],
+        public useFixedTimeCron: boolean = false,
+    ) {
     }
 }
 

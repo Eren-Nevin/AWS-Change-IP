@@ -1,5 +1,9 @@
 <script lang="ts">
-    import type { FixedTimeCron, IntervalCron } from "$lib/models";
+    import {
+        IntervalCron,
+        type InstanceCron,
+        FixedTimeCron,
+    } from "$lib/models";
     import { getInstanceDomain } from "$lib/utils";
     import type { Domain, Instance } from "@aws-sdk/client-lightsail";
     import { getContext } from "svelte";
@@ -7,17 +11,20 @@
 
     export let opened = false;
 
-    let cronUseFixedTime = false;
-
-    export let fixedTimes: FixedTimeCron[] = [];
-    export let intervalTime: IntervalCron;
     export let instance: Instance;
 
     let domains = getContext<Writable<Domain[]>>("domains");
     $: connectedDomain = getInstanceDomain(instance, $domains);
+    let instanceCrons =
+        getContext<Writable<Map<string, InstanceCron>>>("crons");
+
+    export let instanceCronCopy: InstanceCron | undefined;
+    console.log(instanceCronCopy);
 
     export function open() {
-        const modal = document.getElementById("edit_instance_modal");
+        const modal = document.getElementById(
+            `edit_instance_${instance.arn}_modal`
+        );
         if (modal instanceof HTMLDialogElement) {
             opened = true;
             modal.onclose = async () => {
@@ -28,94 +35,157 @@
     }
 
     export function close() {
-        const modal = document.getElementById("edit_instance_modal");
+        const modal = document.getElementById(
+            `edit_instance_${instance.arn}_modal`
+        );
         if (modal instanceof HTMLDialogElement) {
             opened = false;
             modal.close();
         }
     }
+
+    function sanitizeHour(hour: number) {
+        return Math.floor(hour > 23 ? 23 : hour < 0 ? 0 : hour);
+    }
+
+    function sanitizeMinutes(minute: number) {
+        return Math.floor(minute > 59 ? 59 : minute < 0 ? 0 : minute);
+    }
+
+    export function save() {
+        if (!instanceCronCopy) {
+            return;
+        }
+        if (!instanceCronCopy.useFixedTimeCron) {
+            instanceCronCopy.intervalCron = new IntervalCron(
+                sanitizeHour(instanceCronCopy.intervalCron.hours),
+                sanitizeMinutes(instanceCronCopy.intervalCron.minutes)
+            );
+        } else {
+            instanceCronCopy.fixedTimeCrons =
+                instanceCronCopy.fixedTimeCrons.map((cron) => {
+                    return new FixedTimeCron(
+                        sanitizeHour(cron.hour),
+                        sanitizeMinutes(cron.minute)
+                    );
+                });
+        }
+        instanceCrons.update((crons) => {
+            crons.set(instance.arn ?? "", instanceCronCopy);
+            return crons;
+        });
+        close();
+    }
+    export function cancel() {
+        close();
+    }
 </script>
 
-<dialog id="edit_instance_modal" class="modal">
+<dialog id={`edit_instance_${instance.arn}_modal`} class="modal">
     <form method="dialog" class="modal-box overflow-y-scroll">
-        <button
-            class="btn btn-sm btn-circle btn-ghost absolute right-4 top-4"
-            on:click={() => {}}>✕</button
-        >
-        <h3 class="font-bold text-lg">{instance.name ?? ""}</h3>
-        <!-- Replace this with dropdown -->
-        <div class="py-2 flex flex-col gap-2">
-            <p>Location: {instance.location?.regionName ?? ""}</p>
-            <p>
-                IP: {instance.publicIpAddress}
-                {instance.isStaticIp ? "(Static)" : "(Not Static)"}
-            </p>
-            {#if connectedDomain}
-                <p>Domain: {connectedDomain.name}</p>
-            {:else}
-                <p>Domain: Not connected</p>
-            {/if}
-            <label class="mr-auto label cursor-pointer flex flex-row space-x-2">
-                <span class="label-text font-light">Use Fixed Times</span>
-                <input
-                    type="checkbox"
-                    class="toggle toggle-primary"
-                    bind:checked={cronUseFixedTime}
-                />
-            </label>
-            {#if !cronUseFixedTime}
-                <div class="flex flex-row gap-2 align-middle">
-                    <p>Every</p>
+        {#if !instanceCronCopy}
+            <p>Error</p>
+        {:else}
+            <button
+                class="btn btn-sm btn-circle btn-ghost absolute right-4 top-4"
+                on:click={cancel}>✕</button
+            >
+            <h3 class="font-bold text-lg">{instance.name ?? ""}</h3>
+            <!-- Replace this with dropdown -->
+            <div class="py-2 flex flex-col gap-2">
+                <p>Location: {instance.location?.regionName ?? ""}</p>
+                <p>
+                    IP: {instance.publicIpAddress}
+                    {instance.isStaticIp ? "(Static)" : "(Not Static)"}
+                </p>
+                {#if connectedDomain}
+                    <p>Domain: {connectedDomain.name}</p>
+                {:else}
+                    <p>Domain: Not connected</p>
+                {/if}
+                <label
+                    class="mr-auto label cursor-pointer flex flex-row space-x-2"
+                >
+                    <span class="label-text font-light">Use Fixed Times</span>
                     <input
-                        type="number"
-                        placeholder="Name"
-                        class="input input-sm input-bordered w-full max-w-xs"
-                        bind:value={intervalTime.hours}
+                        type="checkbox"
+                        class="toggle toggle-primary"
+                        bind:checked={instanceCronCopy.useFixedTimeCron}
                     />
-                    <span>:</span>
-                    <input
-                        type="number"
-                        placeholder="Name"
-                        class="input input-sm input-bordered w-full max-w-xs"
-                        bind:value={intervalTime.minutes}
-                    />
-                </div>
-            {:else}
-                {#each fixedTimes as fixedTime}
+                </label>
+                {#if !instanceCronCopy.useFixedTimeCron}
                     <div class="flex flex-row gap-2 align-middle">
-                        <p>At</p>
+                        <p>Every</p>
                         <input
                             type="number"
+                            max="23"
+                            min="0"
                             placeholder="Name"
                             class="input input-sm input-bordered w-full max-w-xs"
-                            bind:value={fixedTime.hour}
+                            bind:value={instanceCronCopy.intervalCron.hours}
                         />
                         <span>:</span>
                         <input
                             type="number"
+                            max="59"
+                            min="0"
                             placeholder="Name"
                             class="input input-sm input-bordered w-full max-w-xs"
-                            bind:value={fixedTime.minute}
+                            bind:value={instanceCronCopy.intervalCron.minutes}
                         />
-                        <button
-                            on:click|stopPropagation|preventDefault={() => {
-                                fixedTimes = fixedTimes.filter(
-                                    (time) => time !== fixedTime
-                                );
-                            }}>✕</button
-                        >
                     </div>
-                {/each}
+                {:else}
+                    {#each instanceCronCopy.fixedTimeCrons as fixedTime, i}
+                        <div class="flex flex-row gap-2 align-middle">
+                            <p>At</p>
+                            <input
+                                type="number"
+                                placeholder="Name"
+                                class="input input-sm input-bordered w-full max-w-xs"
+                                bind:value={instanceCronCopy.fixedTimeCrons[i]
+                                    .hour}
+                            />
+                            <span>:</span>
+                            <input
+                                type="number"
+                                placeholder="Name"
+                                class="input input-sm input-bordered w-full max-w-xs"
+                                bind:value={instanceCronCopy.fixedTimeCrons[i]
+                                    .minute}
+                            />
+                            <button
+                                on:click|stopPropagation|preventDefault={() => {
+                                    if (instanceCronCopy) {
+                                        instanceCronCopy.fixedTimeCrons.splice(
+                                            i,
+                                            1
+                                        );
+                                    }
+                                }}>✕</button
+                            >
+                        </div>
+                    {/each}
 
-                <button
-                    class="btn btn-sm btn-primary ml-auto"
-                    on:click|stopPropagation|preventDefault={() => {
-                        fixedTimes = [...fixedTimes, { hour: 0, minute: 0 }];
-                    }}>Add Time</button
+                    <button
+                        class="btn btn-sm btn-primary ml-auto"
+                        on:click|stopPropagation|preventDefault={() => {
+                            if (instanceCronCopy) {
+                                instanceCronCopy.fixedTimeCrons = [
+                                    ...instanceCronCopy.fixedTimeCrons,
+                                    { hour: 0, minute: 0 },
+                                ];
+                            }
+                        }}>Add Time</button
+                    >
+                {/if}
+                <button class="w-full btn btn-primary mx-auto" on:click={save}
+                    >Save</button
                 >
-            {/if}
-            <button class="w-full btn btn-primary mx-auto">Save</button>
-        </div>
+                <button class="w-full btn btn-primary mx-auto" on:click={cancel}
+                    >Cancel</button
+                >
+            </div>
+        {/if}
     </form>
 
     <form method="dialog" class="modal-backdrop">
