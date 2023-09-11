@@ -14,6 +14,7 @@
     import type { RegionResources } from "../lib/models";
     import {
         updateAllRegionResources,
+        updateDomains,
         updateRegionResources,
     } from "$lib/logic";
 
@@ -24,12 +25,32 @@
 
     let allRegions = false;
 
+    let refreshing = false;
+
     $: console.log(selectedRegion.toString());
+
+    $: allRegions, selectedRegion, refreshData();
+
+    async function refreshData() {
+        refreshing = true;
+        console.log("Refreshing data");
+        console.log(selectedRegion);
+        await updateDomains(domains);
+        if (allRegions) {
+            await updateAllRegionResources(regionResources);
+        } else {
+            await updateRegionResources(selectedRegion, regionResources);
+        }
+        refreshing = false;
+    }
 </script>
 
 <section class="container border rounded-xl border-gray-400 p-8 m-12">
-    <div class="flex flex-row justify-end">
-        <input type="checkbox" class="toggle" bind:checked={allRegions} />
+    <div class="flex flex-row justify-end items-center gap-4">
+        <label class="label">
+            <span class="label-text mx-2">All Regions</span>
+            <input type="checkbox" class="toggle" bind:checked={allRegions} />
+        </label>
         <select
             class="select select-accent w-full max-w-xs"
             bind:value={selectedRegion}
@@ -41,7 +62,15 @@
         </select>
     </div>
     <div class="flex flex-col py-4">
-        <InstancesSegment {selectedRegion} bind:allRegions />
+        {#if refreshing}
+            <div class="w-full h-[21rem] flex flex-row justify-center">
+                <span
+                    class="my-auto loading loading-dots loading-lg text-secondary"
+                />
+            </div>
+        {:else}
+            <InstancesSegment {selectedRegion} bind:allRegions />
+        {/if}
         <!-- <StaticIPsSegment /> -->
         <!-- <DomainsSegment /> -->
     </div>
@@ -50,7 +79,7 @@
             class="btn btn-primary"
             on:click={async () => {
                 // await updateRegionResources(selectedRegion, regionResources);
-                await updateAllRegionResources(regionResources);
+                await refreshData();
             }}
         >
             Referesh

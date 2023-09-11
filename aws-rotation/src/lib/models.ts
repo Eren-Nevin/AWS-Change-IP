@@ -9,6 +9,16 @@ export enum Resource {
     DOMAIN = 'domain'
 }
 
+export class FixedTimeCron {
+    constructor(public hour: number, public minute: number) {
+    }
+}
+
+export class IntervalCron {
+    constructor(public hours: number, public minutes: number) {
+    }
+}
+
 export class RegionResources {
     region: RegionName = RegionName.US_EAST_1;
     instances: Instance[] = [];

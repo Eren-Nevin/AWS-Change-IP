@@ -13,22 +13,24 @@
 
     let regionResources = getContext<Writable<RegionResources[]>>("resources");
 
-    $: console.error(selectedRegion);
-
     $: instances = allRegions
         ? $regionResources.map((r) => r.instances).flat()
         : $regionResources.find((r) => r.region === selectedRegion)
               ?.instances ?? [];
 
-    $: console.log(instances);
-
-    // let instances = getContext<Writable<Instance[]>>("instances");
+    // $: console.log(instances);
 </script>
 
 <div class="flex flex-wrap py-8">
-    {#each instances as instance}
-        <div class="card w-96 bg-base-100 shadow-xl">
-            <InstanceComponent {instance} />
+    {#if instances.length}
+        {#each instances as instance}
+            <div class="card w-96 bg-base-100 shadow-xl">
+                <InstanceComponent {instance} />
+            </div>
+        {/each}
+    {:else}
+        <div class="m-auto">
+            <p>No instances found</p>
         </div>
-    {/each}
+    {/if}
 </div>

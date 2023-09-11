@@ -14,6 +14,7 @@ export async function updateRegionResources(region: RegionName, regionResources:
 
     let instances: null | Instance[] = null;
     let staticIps: null | Instance[] = null;
+    // TODO: Use Promise.all
     let instancesRes = await refreshResource(region, Resource.INSTANCE);
     if (Array.isArray(instancesRes)) {
         instances = instancesRes;
