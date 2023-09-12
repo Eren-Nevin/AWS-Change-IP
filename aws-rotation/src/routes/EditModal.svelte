@@ -4,7 +4,7 @@
         type InstanceCron,
         FixedTimeCron,
     } from "$lib/models";
-    import { getInstanceDomain } from "$lib/utils";
+    import { getDomainsPointedToInstance } from "$lib/utils";
     import type { Domain, Instance } from "@aws-sdk/client-lightsail";
     import { getContext } from "svelte";
     import type { Writable } from "svelte/store";
@@ -14,7 +14,7 @@
     export let instance: Instance;
 
     let domains = getContext<Writable<Domain[]>>("domains");
-    $: connectedDomain = getInstanceDomain(instance, $domains);
+    $: connectedDomains = getDomainsPointedToInstance(instance, $domains);
     let instanceCrons =
         getContext<Writable<Map<string, InstanceCron>>>("crons");
 
@@ -71,6 +71,7 @@
                 });
         }
         instanceCrons.update((crons) => {
+            if (!instanceCronCopy) return crons;
             crons.set(instance.arn ?? "", instanceCronCopy);
             return crons;
         });
@@ -98,8 +99,11 @@
                     IP: {instance.publicIpAddress}
                     {instance.isStaticIp ? "(Static)" : "(Not Static)"}
                 </p>
-                {#if connectedDomain}
-                    <p>Domain: {connectedDomain.name}</p>
+                {#if connectedDomains}
+                    <p>Domains:</p>
+                    {#each connectedDomains as connectedDomain}
+                        <p>{connectedDomain.name}</p>
+                    {/each}
                 {:else}
                     <p>Domain: Not connected</p>
                 {/if}

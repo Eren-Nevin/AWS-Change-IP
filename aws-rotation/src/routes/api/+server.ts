@@ -172,22 +172,25 @@ class RegionRequestHandler {
         return res.domain;
     }
 
-    async clearDomainIps(domain_name: string) {
+    async clearDomainIps(domain_name: string, ip_address: string[] = []) {
         const domain = await this.getSpecificDomainInfo(domain_name);
         if (!domain) return false;
         const domainEntries = domain.domainEntries;
         if (!domainEntries) return false;
         const typeAEntries = domainEntries.filter((de) => de.type === "A");
 
-        console.log("Deleting domain entries", typeAEntries);
+        console.log("Deleting some of these domain entries", typeAEntries);
 
         for (const entry of typeAEntries) {
-            const deleteDomainEntryCommand = new DeleteDomainEntryCommand({
-                domainName: domain_name,
-                domainEntry: entry,
-            });
-            const res = await this.domainClient.send(deleteDomainEntryCommand);
-            if (!res.operation) return false;
+            if (!entry.target) continue;
+            if (ip_address.includes(entry.target)) {
+                const deleteDomainEntryCommand = new DeleteDomainEntryCommand({
+                    domainName: domain_name,
+                    domainEntry: entry,
+                });
+                const res = await this.domainClient.send(deleteDomainEntryCommand);
+                if (!res.operation) return false;
+            }
         }
         return true;
     }
@@ -316,7 +319,7 @@ export async function POST(request: RequestEvent): Promise<Response> {
                 return json({ success: true, payload: crons });
             case Command.SET_CRONS:
                 const requestBody = await request.request.json();
-                console.warn(requestBody)
+                // console.warn(requestBody)
                 saveCrons(requestBody);
                 return json({ success: true });
             case Command.ROTATE_IP:
@@ -347,13 +350,13 @@ async function rotateInstance(region: string, instance: Instance) {
     if (!instance.isStaticIp) return false;
     let handler = handlersMap.get(region) ?? new RegionRequestHandler(region);
     const refreshedStaticIPs = await handler.refreshStaticIps()
-    console.log(refreshedStaticIPs);
+    // console.log(refreshedStaticIPs);
     // if (!refreshedStaticIPs) return json({ error: 'could not refresh static ips' });
     const refreshedInstances = await handler.refreshInstances()
-    console.log(refreshedInstances);
+    // console.log(refreshedInstances);
     // if (!refreshedInstances) return json({ error: 'could not refresh instances' });
     const refreshedDomains = await handler.refreshDomains()
-    console.log(refreshedDomains);
+    // console.log(refreshedDomains);
     // if (!refreshedDomains) return json({ error: 'could not refresh domains' });
     attachEmptyCronToInstances(handler.instances)
 
@@ -361,10 +364,22 @@ async function rotateInstance(region: string, instance: Instance) {
     const currentStaticIp = handler.static_ips.find((ip) => ip.ipAddress === currentStaticIpAddress);
     const currentStaticIpName = currentStaticIp?.name;
 
-    const currentDomain = handler.domains.find((d) => d.domainEntries?.find((de) => de.type === "A")?.target === currentStaticIpAddress);
+    // const currentDomain = handler.domains.find((d) => d.domainEntries?.find((de) => de.type === "A")?.target === currentStaticIpAddress);
 
-    console.log("Current domain", currentDomain);
-    if (!currentStaticIp || !currentStaticIpName || !currentDomain) return false;
+    let currentDomains: Domain[] = [];
+
+    for (let domain of handler.domains) {
+        const addressDomainEntries = domain.domainEntries?.filter((de) => de.type === "A");
+        if (addressDomainEntries) {
+            if (addressDomainEntries.find((de) => de.target === currentStaticIpAddress)) {
+                currentDomains = [...currentDomains, domain];
+            }
+        }
+    }
+
+
+    console.log("Current domains", currentDomains);
+    if (!currentStaticIp || !currentStaticIpName || !currentDomains) return false;
 
     let newIpName = generateStaticIpName(Math.floor(Math.random() * 10000000));
 
@@ -376,8 +391,14 @@ async function rotateInstance(region: string, instance: Instance) {
 
     // TODO: Make sure a single domain is not pointed to multiple IPs
     console.log("Deleting Domain IPs");
-    res = await handler.clearDomainIps(currentDomain?.name!);
-    console.log(res);
+    let domainIpsCleared = true;
+    for (const domain of currentDomains) {
+        res = await handler.clearDomainIps(domain?.name!,
+            [currentStaticIp.ipAddress!]);
+        console.log(res);
+        if (!res) { domainIpsCleared = false; break; }
+    }
+    if (!domainIpsCleared) return false;
 
     console.log("Detaching Previous IP");
     res = await handler.detachStaticIpFromInstance(instance.name);
@@ -403,9 +424,14 @@ async function rotateInstance(region: string, instance: Instance) {
     const myInstance = handler.instances.find((i) => i.name === instance.name);
     if (!myInstance) return false;
 
-    console.log("Pointing Domain to New IP");
-    res = await handler.pointDomainToIp(currentDomain?.name!, myInstance.publicIpAddress!);
-    console.log(res);
+    console.log("Pointing Domains to New IP");
+    let domainsPointed = true;
+    for (const domain of currentDomains) {
+        res = await handler.pointDomainToIp(domain?.name!, myInstance.publicIpAddress!);
+        console.log(res);
+        if (!res) { domainsPointed = false; break; }
+    }
+    if (!domainsPointed) return false;
 
     return res;
 

@@ -1,18 +1,18 @@
 import type { Domain, Instance } from "@aws-sdk/client-lightsail";
 
-export function getDomainPointedIp(domain: Domain) {
-    return domain.domainEntries?.find((de) => de.type === "A")?.target;
+export function getIPsPointedByDomain(domain: Domain) {
+    return domain.domainEntries?.filter((de) => de.type === "A")?.map((de) => de.target) ?? [];
 }
 
-export async function getDomainPointedInstance(domain: Domain, instances: Instance[]) {
-    const domainPointedIp = getDomainPointedIp(domain);
-    if (!domainPointedIp) return undefined;
-    const pointedInstance = instances.find((i) => i.publicIpAddress === domainPointedIp);
-    return pointedInstance;
+export function getInstancesPointedByDomain(domain: Domain, instances: Instance[]) {
+    const ipsPointedByDomain = getIPsPointedByDomain(domain);
+    // if (!ipsPointedByDomain) return undefined;
+    const pointedInstances = instances.filter((i) => ipsPointedByDomain.includes(i.publicIpAddress));
+    return pointedInstances;
 }
 
-export function getInstanceDomain(instance: Instance, domains: Domain[]) {
-    return domains.find((d) => getDomainPointedIp(d) === instance.publicIpAddress);
+export function getDomainsPointedToInstance(instance: Instance, domains: Domain[]) {
+    return domains.filter((d) => getIPsPointedByDomain(d)?.includes(instance.publicIpAddress));
 
 }
 

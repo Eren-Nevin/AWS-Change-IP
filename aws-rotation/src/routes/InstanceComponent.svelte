@@ -2,18 +2,18 @@
     import type { Domain, Instance } from "@aws-sdk/client-lightsail";
     import { getContext, onMount } from "svelte";
     import type { Writable } from "svelte/store";
-    import { getDomainPointedIp, getInstanceDomain } from "../lib/utils";
 
     import { rotateInstance, sendRotateInstanceToServer } from "../lib/strategies";
     import EditModal from "./EditModal.svelte";
     import type { FixedTimeCron, InstanceCron } from "$lib/models";
+    import { getDomainsPointedToInstance } from "$lib/utils";
 
     export let instance: Instance;
     $: instanceDisabled = instance.state?.name !== "running";
     $: card_disabled_class = instanceDisabled ? "opacity-50" : "";
 
     let domains = getContext<Writable<Domain[]>>("domains");
-    $: connectedDomain = getInstanceDomain(instance, $domains);
+    $: connectedDomains = getDomainsPointedToInstance(instance, $domains);
 
     let instanceCrons =
         getContext<Writable<Map<string, InstanceCron>>>("crons");
@@ -42,8 +42,11 @@
             IP: {instance.publicIpAddress}
             {instance.isStaticIp ? "(Static)" : "(Not Static)"}
         </p>
-        {#if connectedDomain}
-            <p>Domain: {connectedDomain.name}</p>
+        {#if connectedDomains}
+            <p> Domains: </p>
+{#each connectedDomains as connectedDomain}
+            <p>{connectedDomain.name}</p>
+{/each}
         {:else}
             <p>Domain: Not connected</p>
         {/if}
