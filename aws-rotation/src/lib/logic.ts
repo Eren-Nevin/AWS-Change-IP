@@ -1,6 +1,6 @@
 import { RegionName, type Domain, type Instance, type StaticIp } from "@aws-sdk/client-lightsail";
 import type { Writable } from "svelte/store";
-import { readCronsFromServer, refreshResource, sendCronsToServer } from "./backend";
+import { readCronsFromServer, refreshResource, sendCronToServer } from "./backend";
 import { InstanceCron, IntervalCron, RegionResources, Resource } from "./models";
 
 export async function updateAllRegionResources(regionResources: Writable<RegionResources[]>) {
@@ -24,9 +24,8 @@ export async function updateCrons(instanceCrons: Writable<Map<string, InstanceCr
     })
 }
 
-export async function saveCronsToServer(instanceCrons: Map<string, InstanceCron>) {
-    let crons: InstanceCron[] = Array.from(instanceCrons.values());
-    let res = await sendCronsToServer(crons);
+export async function saveCronToServer(region: string, instanceCron: InstanceCron, instance_name: string) {
+    let res = await sendCronToServer(region, instanceCron, instance_name);
     return res;
 }
 

@@ -27,11 +27,12 @@ export async function readCronsFromServer(): Promise<InstanceCron[]> {
     }
 }
 
-export async function sendCronsToServer(crons: InstanceCron[]) {
+export async function sendCronToServer(region: string, cron: InstanceCron, instance_name: string) {
     let searchParams = new URLSearchParams();
-    searchParams.set("region", RegionName.US_EAST_1);
-    searchParams.set("command", Command.SET_CRONS);
-    let res = await callBackend(searchParams, crons);
+    searchParams.set("region", region);
+    searchParams.set("command", Command.SET_CRON);
+    searchParams.set(Resource.INSTANCE, instance_name);
+    let res = await callBackend(searchParams, cron);
     const resObj = await res.json();
     return resObj;
 }

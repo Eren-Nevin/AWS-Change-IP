@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { saveCronToServer } from "$lib/logic";
     import {
         IntervalCron,
         type InstanceCron,
@@ -52,7 +53,7 @@
         return Math.floor(minute > 59 ? 59 : minute < 0 ? 0 : minute);
     }
 
-    export function save() {
+    export async function save() {
         if (!instanceCronCopy) {
             return;
         }
@@ -70,6 +71,7 @@
                     );
                 });
         }
+        await saveCronToServer(instance.location?.regionName!, instanceCronCopy, instance.name!);
         instanceCrons.update((crons) => {
             if (!instanceCronCopy) return crons;
             crons.set(instance.arn ?? "", instanceCronCopy);
@@ -142,12 +144,10 @@
                     {#each instanceCronCopy.fixedTimeCrons as fixedTime, i}
                         <div class="flex flex-row gap-2 align-middle">
                             <p>At</p>
-                            <input
-                                type="number"
-                                placeholder="Name"
-                                class="input input-sm input-bordered w-full max-w-xs"
-                                bind:value={instanceCronCopy.fixedTimeCrons[i]
-                                    .hour}
+
+                            type="number" placeholder="Name" class="input
+                            input-sm input-bordered w-full max-w-xs" bind:value={instanceCronCopy
+                                .fixedTimeCrons[i].hour}
                             />
                             <span>:</span>
                             <input
@@ -182,8 +182,11 @@
                         }}>Add Time</button
                     >
                 {/if}
-                <button class="w-full btn btn-primary mx-auto" on:click={save}
-                    >Save</button
+                <button
+                    class="w-full btn btn-primary mx-auto"
+                    on:click={async () => {
+                        await save();
+                    }}>Save</button
                 >
                 <button class="w-full btn btn-primary mx-auto" on:click={cancel}
                     >Cancel</button

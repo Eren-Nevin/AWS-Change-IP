@@ -52,7 +52,7 @@ export enum Command {
     DELETE_DOMAIN_IPS = 'delete_domain_ips',
     POINT_DOMAIN = 'point_domain',
     GET_CRONS = 'get_crons',
-    SET_CRONS = 'set_crons',
+    SET_CRON = 'set_crons',
     ROTATE_IP = 'rotate_ip'
 }
 

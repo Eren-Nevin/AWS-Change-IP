@@ -1,6 +1,8 @@
 import schedule from 'node-schedule';
 import { FixedTimeCron, InstanceCron, IntervalCron } from "$lib/models";
 import type { Instance } from "@aws-sdk/client-lightsail";
+import type { RegionRequestHandler } from './aws_handlers';
+import { rotateInstance } from './ip_change';
 
 export class CronHandler {
     public allCrons: Map<string, InstanceCron>;
@@ -27,29 +29,32 @@ export class CronHandler {
         }
     }
 
-    saveCrons(crons: InstanceCron[]) {
-        for (let cron of crons) {
-            this.allCrons.set(cron.instanceId, cron);
-        }
-        this.scheduleCrons();
+    saveCron(cron: InstanceCron, instance: Instance, regionRequestHandler: RegionRequestHandler) {
+        this.allCrons.set(cron.instanceId, cron);
+        this.scheduleCron(cron, instance, regionRequestHandler);
     }
 
-    scheduleCrons() {
-        for (let [instanceId, instanceCron] of this.allCrons.entries()) {
-        let instanceAllJobs = this.allJobs.get(instanceId) || [];
-            instanceAllJobs.forEach((job) => job.cancel());
-            instanceAllJobs = [];
-            let intervalCron = instanceCron.intervalCron;
-            if (intervalCron.minutes > 0) {
-                const cronString = `*/${intervalCron.minutes} * * * *`;
-                const job = schedule.scheduleJob(cronString, () => {
-                    console.log(`Running cron for instance: ${instanceCron.instanceId}` + instanceId);
-                });
-                instanceAllJobs.push(job);
-                console.log("Job Scheduled", job.name);
-            }
-            this.allJobs.set(instanceId, instanceAllJobs);
+    scheduleCron(cron: InstanceCron, instance: Instance, regionRequestHandler: RegionRequestHandler) {
+        let instanceAllJobs = this.allJobs.get(cron.instanceId) || [];
+        instanceAllJobs.forEach((job) => job.cancel());
+        instanceAllJobs = [];
+        let intervalCron = cron.intervalCron;
+        if (intervalCron.minutes > 0) {
+            console.log(instance);
+            console.log(instance);
+            console.log(instance);
+            console.log(instance);
+            const cronString = `*/${intervalCron.minutes} * * * *`;
+            const job = schedule.scheduleJob(cronString, async () => {
+                console.log("Rotating Instance", instance.name);
+                const res = await rotateInstance(instance, regionRequestHandler, this)
+                if (res) console.log("Instance Rotated", instance.name);
+                else console.log("Instance Rotation Failed", instance.name);
+            });
+            instanceAllJobs.push(job);
+            console.log("Job Scheduled", job.name);
         }
+        this.allJobs.set(cron.instanceId, instanceAllJobs);
         console.log("All instnaces Jobs", this.allJobs);
     }
 
