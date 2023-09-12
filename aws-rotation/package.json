@@ -12,6 +12,7 @@
   "devDependencies": {
     "@sveltejs/adapter-auto": "^1.0.0-next.90",
     "@sveltejs/kit": "^1.0.0-next.587",
+    "@types/node-schedule": "^2.1.0",
     "autoprefixer": "^10.4.14",
     "daisyui": "^3.1.6",
     "postcss": "^8.4.24",
@@ -26,6 +27,7 @@
   "type": "module",
   "dependencies": {
     "@aws-sdk/client-lightsail": "^3.408.0",
+    "node-schedule": "^2.1.1",
     "svelte-preprocess": "^5.0.4"
   }
 }

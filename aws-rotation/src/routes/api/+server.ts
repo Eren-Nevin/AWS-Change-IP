@@ -26,7 +26,7 @@ import {
 } from "@aws-sdk/client-lightsail";
 import type { RequestEvent } from "./$types";
 import { Command, Resource, RegionName } from "../../lib/models";
-import { attachEmptyCronToInstances, readCrons, saveCrons } from "./crons";
+import { CronHandler } from "./crons";
 import { generateStaticIpName, wait } from "$lib/utils";
 
 class MyCredentials implements Credentials {
@@ -215,6 +215,7 @@ function sleep(ms: number) {
 }
 
 let handlersMap = new Map<string, RegionRequestHandler>();
+let cronHandler = new CronHandler();
 
 export async function POST(request: RequestEvent): Promise<Response> {
     try {
@@ -258,7 +259,7 @@ export async function POST(request: RequestEvent): Promise<Response> {
                     case Resource.INSTANCE:
                         res = await handler.refreshInstances()
                         if (!res) return json({ error: 'could not refresh instances' });
-                        attachEmptyCronToInstances(handler.instances)
+                        cronHandler.attachEmptyCronToInstancesIfNeeded(handler.instances)
                         return json(handler.instances);
                     case Resource.DOMAIN:
                         res = await handler.refreshDomains()
@@ -315,12 +316,12 @@ export async function POST(request: RequestEvent): Promise<Response> {
                 if (!res) return json({ error: 'could not point domain to ip_address' });
                 return json({ success: res });
             case Command.GET_CRONS:
-                const crons = readCrons();
+                const crons = cronHandler.readCrons();
                 return json({ success: true, payload: crons });
             case Command.SET_CRONS:
                 const requestBody = await request.request.json();
                 // console.warn(requestBody)
-                saveCrons(requestBody);
+                cronHandler.saveCrons(requestBody);
                 return json({ success: true });
             case Command.ROTATE_IP:
                 if (!instance) return json({ error: 'no instance' });
@@ -350,22 +351,13 @@ async function rotateInstance(region: string, instance: Instance) {
     if (!instance.isStaticIp) return false;
     let handler = handlersMap.get(region) ?? new RegionRequestHandler(region);
     const refreshedStaticIPs = await handler.refreshStaticIps()
-    // console.log(refreshedStaticIPs);
-    // if (!refreshedStaticIPs) return json({ error: 'could not refresh static ips' });
     const refreshedInstances = await handler.refreshInstances()
-    // console.log(refreshedInstances);
-    // if (!refreshedInstances) return json({ error: 'could not refresh instances' });
     const refreshedDomains = await handler.refreshDomains()
-    // console.log(refreshedDomains);
-    // if (!refreshedDomains) return json({ error: 'could not refresh domains' });
-    attachEmptyCronToInstances(handler.instances)
+    cronHandler.attachEmptyCronToInstancesIfNeeded(handler.instances)
 
     const currentStaticIpAddress = instance.publicIpAddress;
     const currentStaticIp = handler.static_ips.find((ip) => ip.ipAddress === currentStaticIpAddress);
     const currentStaticIpName = currentStaticIp?.name;
-
-    // const currentDomain = handler.domains.find((d) => d.domainEntries?.find((de) => de.type === "A")?.target === currentStaticIpAddress);
-
     let currentDomains: Domain[] = [];
 
     for (let domain of handler.domains) {
@@ -434,6 +426,8 @@ async function rotateInstance(region: string, instance: Instance) {
     if (!domainsPointed) return false;
 
     return res;
-
-
 }
+
+
+
+
