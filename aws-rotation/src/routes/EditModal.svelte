@@ -71,7 +71,11 @@
                     );
                 });
         }
-        await saveCronToServer(instance.location?.regionName!, instanceCronCopy, instance.name!);
+        await saveCronToServer(
+            instance.location?.regionName!,
+            instanceCronCopy,
+            instance.name!
+        );
         instanceCrons.update((crons) => {
             if (!instanceCronCopy) return crons;
             crons.set(instance.arn ?? "", instanceCronCopy);

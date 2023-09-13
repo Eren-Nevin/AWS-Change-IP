@@ -3,6 +3,7 @@ import { FixedTimeCron, InstanceCron, IntervalCron } from "$lib/models";
 import type { Instance } from "@aws-sdk/client-lightsail";
 import type { RegionRequestHandler } from './aws_handlers';
 import { rotateInstance } from './ip_change';
+import { logger } from './utils';
 
 export class CronHandler {
     public allCrons: Map<string, InstanceCron>;
@@ -22,6 +23,7 @@ export class CronHandler {
             if (instance.arn === undefined) continue;
             let cron = this.allCrons.get(instance.arn);
             if (cron === undefined) {
+                logger.info(`Attaching Empty Cron to Instance: ${instance.name}`);
                 cron = this.createEmptyCronForInstance(instance);
                 if (cron === undefined) continue;
                 this.allCrons.set(instance.arn, cron);

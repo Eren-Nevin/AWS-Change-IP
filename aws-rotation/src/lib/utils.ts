@@ -26,3 +26,4 @@ export function generateStaticIpName(n: number) {
     return `StaticIp-${n}`;
 }
 
+

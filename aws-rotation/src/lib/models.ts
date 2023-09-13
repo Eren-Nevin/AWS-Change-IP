@@ -34,6 +34,9 @@ export class InstanceCron {
         public useFixedTimeCron: boolean = false,
     ) {
     }
+    toString() {
+        return `Instance: ${this.instanceId}: ${this.useFixedTimeCron ? this.fixedTimeCrons.map((e) => e.toString()) : this.intervalCron.toString()}`
+    }
 }
 
 export class RegionResources {

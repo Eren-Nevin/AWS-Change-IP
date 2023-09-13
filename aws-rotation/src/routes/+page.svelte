@@ -18,6 +18,7 @@
         updateRegionResources,
         updateCrons,
     } from "$lib/logic";
+    import { downloadAllLogsFromServer } from "$lib/backend";
 
     let regionResources = getContext<Writable<RegionResources[]>>("resources");
     let domains = getContext<Writable<Domain[]>>("domains");
@@ -30,11 +31,15 @@
 
     let refreshing = false;
 
+    let mounted = false;
+
     $: console.log(selectedRegion.toString());
 
     $: allRegions, selectedRegion, refreshData();
 
     async function refreshData() {
+        if (!mounted) return;
+        console.log("REFERESHING DATA");
         refreshing = true;
         console.log("Refreshing data");
         console.log(selectedRegion);
@@ -49,7 +54,12 @@
     }
 
     onMount(async () => {
-        console.log("STATE");
+        console.log("MOUNT");
+        refreshing = true;
+        await updateAllRegionResources(regionResources);
+        await updateCrons(instanceCrons);
+        refreshing = false;
+        mounted = true;
     });
 </script>
 
@@ -100,6 +110,16 @@
             }}
         >
             Cron
+        </button>
+        <button
+            class="btn btn-primary"
+            on:click={async () => {
+                // await updateRegionResources(selectedRegion, regionResources);
+                await downloadAllLogsFromServer();
+                // console.warn("Crons", $instanceCrons);
+            }}
+        >
+            Download Logs
         </button>
     </div>
 </section>

@@ -150,3 +150,24 @@ export async function sendRotateInstanceIP(region: string, instance_name: string
     return await res.json();
 }
 
+export async function downloadAllLogsFromServer() {
+    await downloadStateFileFromServer("/api?filename=logs.log", 'logs.log');
+}
+
+export async function downloadStateFileFromServer(fileurl: string, filename: string) {
+    fetch(`${fileurl}`)
+        .then((resp) => resp.blob())
+        .then((blob) => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            // the filename you want
+            a.download = `${filename}`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+        })
+        .catch(() => alert('oh no!'));
+}
+

@@ -123,7 +123,6 @@ export class RegionRequestHandler {
         const res = await this.domainClient.send(getDomainsCommand);
         if (res.domains) {
             this.domains = res.domains;
-            // console.log(this.domains[0].domainEntries);
             return true;
         }
     }
@@ -140,8 +139,6 @@ export class RegionRequestHandler {
         const domainEntries = domain.domainEntries;
         if (!domainEntries) return false;
         const typeAEntries = domainEntries.filter((de) => de.type === "A");
-
-        console.log("Deleting some of these domain entries", typeAEntries);
 
         for (const entry of typeAEntries) {
             if (!entry.target) continue;
