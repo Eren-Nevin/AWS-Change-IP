@@ -3,7 +3,7 @@ import fs from 'fs';
 
 
 import type { RequestEvent } from "./$types";
-import { Command, Resource, RegionName } from "../../lib/models";
+import { Command, Resource, RegionName, IntervalCron, InstanceCron, FixedTimeCron } from "../../lib/models";
 import { CronHandler } from "./crons";
 import { RegionRequestHandler } from "./aws_handlers";
 import { rotateInstance } from "./ip_change";
@@ -183,7 +183,14 @@ export async function POST(request: RequestEvent): Promise<Response> {
                 logger.info(`${region} Crons Read ${crons.map((e) => e.toString()).join("\n")}`);
                 return json({ success: true, payload: crons });
             case Command.SET_CRON:
-                const cronInstance = await request.request.json();
+                const cronInstanceRaw = await request.request.json();
+                const cronInstance = new InstanceCron(
+                    cronInstanceRaw.instanceId,
+                    new IntervalCron(cronInstanceRaw.intervalCron.hours, cronInstanceRaw.intervalCron.minutes),
+                    cronInstanceRaw.fixedTimeCrons.map((e) => new FixedTimeCron(e.hour, e.minute)),
+                    cronInstanceRaw.useFixedTimeCron,
+                    cronInstanceRaw.enabled
+                );
                 const currentInstance = handler.instances.find((i) => i.name === instanceName);
                 if (!currentInstance) {
                     logger.error(`${region} Could not find instance ${instanceName}`);

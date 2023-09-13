@@ -3,10 +3,11 @@
     import { getContext, onMount } from "svelte";
     import type { Writable } from "svelte/store";
 
-    import { rotateInstance, sendRotateInstanceToServer } from "../lib/strategies";
+    import { sendRotateInstanceToServer } from "../lib/strategies";
     import EditModal from "./EditModal.svelte";
     import type { FixedTimeCron, InstanceCron } from "$lib/models";
     import { getDomainsPointedToInstance } from "$lib/utils";
+    import { saveCronToServer } from "$lib/logic";
 
     export let instance: Instance;
     $: instanceDisabled = instance.state?.name !== "running";
@@ -21,6 +22,22 @@
     $: instanceCron = $instanceCrons.get(instance.arn ?? "");
 
     let editModal: EditModal;
+
+    async function toggleCron() {
+        if (instanceCron) {
+            instanceCron.enabled = !instanceCron.enabled;
+            await saveCronToServer(
+                instance.location?.regionName!,
+                instanceCron,
+                instance.name!
+            );
+            instanceCrons.update((crons) => {
+                if (!instanceCron) return crons;
+                crons.set(instance.arn ?? "", instanceCron);
+                return crons;
+            });
+        }
+    }
 </script>
 
 <div class="card w-96 bg-base-100 shadow-xl">
@@ -43,10 +60,10 @@
             {instance.isStaticIp ? "(Static)" : "(Not Static)"}
         </p>
         {#if connectedDomains}
-            <p> Domains: </p>
-{#each connectedDomains as connectedDomain}
-            <p>{connectedDomain.name}</p>
-{/each}
+            <p>Domains:</p>
+            {#each connectedDomains as connectedDomain}
+                <p>{connectedDomain.name}</p>
+            {/each}
         {:else}
             <p>Domain: Not connected</p>
         {/if}
@@ -65,25 +82,19 @@
             <button
                 class="btn btn-primary"
                 on:click={async () => {
-                    const res = await rotateInstance(
-                        instance.location?.regionName ?? "",
-                        instance
-                    );
-                    console.warn("Final Res", res);
-                }}>Change Ip</button
-            >
-            <button
-                class="btn btn-primary"
-                on:click={async () => {
                     const res = await sendRotateInstanceToServer(
                         instance.location?.regionName ?? "",
                         instance
                     );
                     console.warn("Final Res", res);
-                }}>Change IP (Server)</button
+                }}>Manual Change IP</button
             >
-            <button class="btn btn-primary" on:click={async () => {}}
-                >Stop Ip Change</button
+            <button
+                class="btn btn-primary"
+                on:click={async () => {
+                    await toggleCron();
+                }}
+                >{instanceCron?.enabled ? "Disable" : "Enable"} Ip Change</button
             >
         </div>
     </div>

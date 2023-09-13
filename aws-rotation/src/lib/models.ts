@@ -32,10 +32,13 @@ export class InstanceCron {
         public intervalCron: IntervalCron,
         public fixedTimeCrons: FixedTimeCron[],
         public useFixedTimeCron: boolean = false,
+        public enabled: boolean = true,
     ) {
     }
     toString() {
-        return `Instance: ${this.instanceId}: ${this.useFixedTimeCron ? this.fixedTimeCrons.map((e) => e.toString()) : this.intervalCron.toString()}`
+        return `Instance: ${this.instanceId}: 
+Enabled: ${this.enabled},
+${this.useFixedTimeCron ? this.fixedTimeCrons.map((e) => e.toString()) : this.intervalCron.toString()}`
     }
 }
 

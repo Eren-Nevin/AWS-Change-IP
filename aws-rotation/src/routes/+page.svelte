@@ -106,15 +106,6 @@
             class="btn btn-primary"
             on:click={async () => {
                 // await updateRegionResources(selectedRegion, regionResources);
-                console.warn("Crons", $instanceCrons);
-            }}
-        >
-            Cron
-        </button>
-        <button
-            class="btn btn-primary"
-            on:click={async () => {
-                // await updateRegionResources(selectedRegion, regionResources);
                 await downloadAllLogsFromServer();
                 // console.warn("Crons", $instanceCrons);
             }}
