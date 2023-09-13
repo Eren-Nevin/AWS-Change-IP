@@ -144,10 +144,12 @@
                     {#each instanceCronCopy.fixedTimeCrons as fixedTime, i}
                         <div class="flex flex-row gap-2 align-middle">
                             <p>At</p>
-
-                            type="number" placeholder="Name" class="input
-                            input-sm input-bordered w-full max-w-xs" bind:value={instanceCronCopy
-                                .fixedTimeCrons[i].hour}
+                            <input
+                                type="number"
+                                placeholder="Name"
+                                class="input input-sm input-bordered w-full max-w-xs"
+                                bind:value={instanceCronCopy.fixedTimeCrons[i]
+                                    .hour}
                             />
                             <span>:</span>
                             <input

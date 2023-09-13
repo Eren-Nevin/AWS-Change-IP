@@ -1,14 +1,9 @@
 import { json } from "@sveltejs/kit";
 
-import type {
-    Instance,
-    Domain,
-} from "@aws-sdk/client-lightsail";
 
 import type { RequestEvent } from "./$types";
 import { Command, Resource, RegionName } from "../../lib/models";
 import { CronHandler } from "./crons";
-import { generateStaticIpName, wait } from "$lib/utils";
 import { RegionRequestHandler } from "./aws_handlers";
 import { rotateInstance } from "./ip_change";
 
@@ -125,7 +120,6 @@ export async function POST(request: RequestEvent): Promise<Response> {
                 const cronInstance = await request.request.json();
                 console.log(cronInstance)
                 const currentInstance = handler.instances.find((i) => i.name === instanceName);
-                console.log(currentInstance)
                 cronHandler.saveCron(
                     cronInstance,
                     currentInstance!,

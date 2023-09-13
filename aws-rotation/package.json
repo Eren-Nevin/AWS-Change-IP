@@ -28,6 +28,7 @@
   "dependencies": {
     "@aws-sdk/client-lightsail": "^3.408.0",
     "node-schedule": "^2.1.1",
-    "svelte-preprocess": "^5.0.4"
+    "svelte-preprocess": "^5.0.4",
+    "winston": "^3.10.0"
   }
 }
