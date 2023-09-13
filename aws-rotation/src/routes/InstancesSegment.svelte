@@ -21,12 +21,10 @@
     // $: console.log(instances);
 </script>
 
-<div class="flex flex-wrap py-8">
+<div class="flex flex-wrap gap-4 py-8">
     {#if instances.length}
         {#each instances as instance}
-            <div class="card w-96 bg-base-100 shadow-xl">
                 <InstanceComponent {instance} />
-            </div>
         {/each}
     {:else}
         <div class="m-auto">
