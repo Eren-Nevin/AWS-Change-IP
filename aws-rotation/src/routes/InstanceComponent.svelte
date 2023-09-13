@@ -107,7 +107,7 @@
             <div class="flex flex-col my-2 gap-2">
                 {#if instanceCron?.enabled}
                     <p class="field-label">
-                        Ip Rotation:
+                        IP Rotation:
                         <span class="field-value"
                             >{instanceCron.useFixedTimeCron
                                 ? `Fixed Time Rotation`

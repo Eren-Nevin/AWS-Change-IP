@@ -69,6 +69,7 @@
             <span class="label-text mx-2">All Regions</span>
             <input type="checkbox" class="toggle" bind:checked={allRegions} />
         </label>
+        {#if !allRegions}
         <select
             class="select select-accent w-full max-w-xs"
             bind:value={selectedRegion}
@@ -78,6 +79,7 @@
                 <option>{region}</option>
             {/each}
         </select>
+            {/if}
     </div>
     <div class="flex flex-col py-4">
         {#if refreshing}

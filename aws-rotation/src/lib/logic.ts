@@ -5,9 +5,17 @@ import { InstanceCron, IntervalCron, RegionResources, Resource } from "./models"
 
 export async function updateAllRegionResources(regionResources: Writable<RegionResources[]>) {
     let regions = Object.values(RegionName);
+    let allUpdatePromises = []
     for (let region of regions) {
-        await updateRegionResources(region, regionResources);
+        allUpdatePromises.push(updateRegionResources(region, regionResources));
     }
+    let res = Promise.allSettled(allUpdatePromises).then((res) => {
+        if (res) { console.log(res); }
+    }).catch((e) => console.error(e));
+
+    return res;
+
+    // await updateRegionResources(region, regionResources);
 }
 
 export async function updateCrons(instanceCrons: Writable<Map<string, InstanceCron>>) {
