@@ -73,10 +73,10 @@ export class CronHandler {
             // } 
             else {
                 logger.info("HHASDASDASDASDAS");
-                let cronString = `0 */${intervalCron.hours} * * * *`;
-                // if (intervalCron.minutes > 0) {
-                //     cronString = `*/${intervalCron.minutes} * * * *`;
-                // }
+                let cronString = `0 0 */${intervalCron.hours} * * *`;
+                // let cronString = `0 */${intervalCron.hours} * * * *`;
+                // let cronString = `*/${intervalCron.hours} * * * * *`;
+
                 const job = schedule.scheduleJob(instance.arn!, cronString, async (scheduledDate) => {
                     logger.info(`CronJob: ${instance.name}: Runnig Job ${job}: For Rotating Instance ${instance.name}`);
                     const res = await rotateInstance(instance, regionRequestHandler, this)
