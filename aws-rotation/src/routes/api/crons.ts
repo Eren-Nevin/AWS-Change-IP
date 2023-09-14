@@ -45,13 +45,12 @@ export class CronHandler {
         }
         instanceAllJobs = [];
         let intervalCron = cron.intervalCron;
-        if (cron.fixedTimeCrons) {
+        if (cron.useFixedTimeCron) {
             for (let fixedTimeCron of cron.fixedTimeCrons) {
                 const rule = new schedule.RecurrenceRule();
                 rule.hour = fixedTimeCron.hour;
                 rule.minute = fixedTimeCron.minute;
                 // rule.tz = 'Asia/Tehran';
-                // const cronString = `${fixedTimeCron.minute} ${fixedTimeCron.hour} * * *`;
                 const job = schedule.scheduleJob(instance.arn!, rule, async (scheduledDate) => {
                     logger.info(`CronJob: ${instance.name}: Runnig Job ${job}: For Rotating Instance ${instance.name}`);
                     const res = await rotateInstance(instance, regionRequestHandler, this)
@@ -65,8 +64,16 @@ export class CronHandler {
                 logger.info(`Job ${job} Scheduled`);
             }
         } else {
-            if (intervalCron.minutes > 0) {
-                const cronString = `*/${intervalCron.minutes} * * * *`;
+            if (intervalCron.hours == 0 && intervalCron.minutes == 0) {
+                logger.info(`CronJobs: No cronjobs for ${instance.name} Set since hour and minute are both 0 in the interval scenario`);
+            } else if (intervalCron.hours !== 0 && intervalCron.minutes !== 0) {
+                logger.warn(`CronJobs: No cronjobs for ${instance.name} Set since hour and minute are both non-zero in the interval scenario. Only one should be non-zero`);
+            } else {
+                logger.info("HHASDASDASDASDAS");
+                let cronString = `*/${intervalCron.minutes} * * * *`;
+                if (intervalCron.hours > 0) {
+                    cronString = `0 */${intervalCron.hours} * * * *`;
+                }
                 const job = schedule.scheduleJob(instance.arn!, cronString, async (scheduledDate) => {
                     logger.info(`CronJob: ${instance.name}: Runnig Job ${job}: For Rotating Instance ${instance.name}`);
                     const res = await rotateInstance(instance, regionRequestHandler, this)
@@ -77,7 +84,7 @@ export class CronHandler {
                     }
                 });
                 instanceAllJobs.push(job);
-                logger.info(`Job ${job} Scheduled`);
+                logger.error(`Job ${job} Scheduled`);
             }
         }
         this.allJobs.set(cron.instanceId, instanceAllJobs);

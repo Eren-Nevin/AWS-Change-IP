@@ -54,7 +54,7 @@ export async function rotateInstance(mInstance: Instance, regionRequesthandler: 
         return false;
     }
 
-    await wait(1000);
+    // await wait(1000);
 
     // TODO: Make sure a single domain is not pointed to multiple IPs
     let domainIpsCleared = true;
@@ -76,7 +76,7 @@ export async function rotateInstance(mInstance: Instance, regionRequesthandler: 
         return false;
     }
 
-    await wait(1000);
+    // await wait(1000);
 
     res = await regionRequesthandler.attachStaticIpToInstance(instance.name, newIpName);
     if (res) {
@@ -86,7 +86,7 @@ export async function rotateInstance(mInstance: Instance, regionRequesthandler: 
         return false;
     }
 
-    await wait(1000);
+    // await wait(1000);
 
     res = await regionRequesthandler.releaseStaticIp(currentStaticIpName);
     if (res) {
@@ -96,7 +96,7 @@ export async function rotateInstance(mInstance: Instance, regionRequesthandler: 
         return false;
     }
 
-    await wait(1000);
+    // await wait(1000);
 
     const newInstancesRefreshed = await regionRequesthandler.refreshInstances()
     if (newInstancesRefreshed) {

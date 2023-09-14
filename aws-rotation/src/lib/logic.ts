@@ -69,6 +69,7 @@ export async function updateRegionResources(region: RegionName, regionResources:
         return resources;
     });
 
+    return true;
 
 }
 

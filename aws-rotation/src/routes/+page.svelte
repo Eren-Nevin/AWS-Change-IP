@@ -43,13 +43,13 @@
         refreshing = true;
         console.log("Refreshing data");
         console.log(selectedRegion);
-        await updateDomains(domains);
         if (allRegions) {
             await updateAllRegionResources(regionResources);
         } else {
             await updateRegionResources(selectedRegion, regionResources);
         }
         await updateCrons(instanceCrons);
+        await updateDomains(domains);
         refreshing = false;
     }
 
@@ -70,16 +70,16 @@
             <input type="checkbox" class="toggle" bind:checked={allRegions} />
         </label>
         {#if !allRegions}
-        <select
-            class="select select-accent w-full max-w-xs"
-            bind:value={selectedRegion}
-        >
-            <option disabled selected>Region</option>
-            {#each Object.values(RegionName) as region}
-                <option>{region}</option>
-            {/each}
-        </select>
-            {/if}
+            <select
+                class="select select-accent w-full max-w-xs"
+                bind:value={selectedRegion}
+            >
+                <option disabled selected>Region</option>
+                {#each Object.values(RegionName) as region}
+                    <option>{region}</option>
+                {/each}
+            </select>
+        {/if}
     </div>
     <div class="flex flex-col py-4">
         {#if refreshing}
