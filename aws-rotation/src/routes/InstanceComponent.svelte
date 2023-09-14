@@ -105,12 +105,26 @@
                     {instance.isStaticIp ? "(Static)" : "(Not Static)"}</span
                 >
             </p>
-                <p class='field-label'>Constant Domain: <span class="field-value">{constantDomain ?? 'No Constant Domain'}</span></p>
+            <p class="field-label">
+                Constant Domain: <span class="field-value"
+                    >{constantDomain ?? "No Constant Domain"}</span
+                >
+            </p>
             {#if connectedDomains}
-                <p class="field-label">Domains:</p>
-                {#each connectedDomains as connectedDomain}
-                    <p class="field-value">{connectedDomain.name}</p>
-                {/each}
+                <p class="field-label">
+                    Domain:
+                    {#each connectedDomains as connectedDomain}
+                        {#if connectedDomain.domainEntries}
+                            {#each connectedDomain.domainEntries as domainEntry}
+                                {#if domainEntry.target === instance.publicIpAddress}
+                                    <span class="field-value">
+                                        {domainEntry.name}
+                                    </span>
+                                {/if}
+                            {/each}
+                        {/if}
+                    {/each}
+                </p>
             {:else}
                 <p class="field-label">Domain: Not connected</p>
             {/if}
@@ -158,7 +172,7 @@
                 bind:this={editModal}
                 {instance}
                 instanceCronCopy={instanceCron}
-                constantDomain={constantDomain}
+                {constantDomain}
             />
         {/if}
     </div>

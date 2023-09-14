@@ -23,7 +23,7 @@ export class IntervalCron {
     constructor(public hours: number, public minutes: number) {
     }
     toString() {
-        return `Every ${this.hours}H:${this.minutes}M`
+        return `Every ${this.hours} H`
     }
 }
 
