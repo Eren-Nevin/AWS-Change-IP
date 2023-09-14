@@ -156,7 +156,7 @@
                     />
                 </label>
                 {#if !instanceCronCopy.useFixedTimeCron}
-                    <div class="flex flex-row gap-2 align-middle">
+                    <div class="w-44 flex flex-row gap-2 align-middle items-center">
                         <p>Every</p>
                         <input
                             type="number"
@@ -166,15 +166,15 @@
                             class="input input-sm input-bordered w-full max-w-xs"
                             bind:value={instanceCronCopy.intervalCron.hours}
                         />
-                        <span>:</span>
-                        <input
-                            type="number"
-                            max="59"
-                            min="0"
-                            placeholder="Name"
-                            class="input input-sm input-bordered w-full max-w-xs"
-                            bind:value={instanceCronCopy.intervalCron.minutes}
-                        />
+                        <span> Hours</span>
+                        <!-- <input -->
+                        <!--     type="number" -->
+                        <!--     max="59" -->
+                        <!--     min="0" -->
+                        <!--     placeholder="Name" -->
+                        <!--     class="input input-sm input-bordered w-full max-w-xs" -->
+                        <!--     bind:value={instanceCronCopy.intervalCron.minutes} -->
+                        <!-- /> -->
                     </div>
                 {:else}
                     {#each instanceCronCopy.fixedTimeCrons as fixedTime, i}

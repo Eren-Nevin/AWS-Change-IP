@@ -64,16 +64,19 @@ export class CronHandler {
                 logger.info(`Job ${job} Scheduled`);
             }
         } else {
-            if (intervalCron.hours == 0 && intervalCron.minutes == 0) {
-                logger.info(`CronJobs: No cronjobs for ${instance.name} Set since hour and minute are both 0 in the interval scenario`);
-            } else if (intervalCron.hours !== 0 && intervalCron.minutes !== 0) {
-                logger.warn(`CronJobs: No cronjobs for ${instance.name} Set since hour and minute are both non-zero in the interval scenario. Only one should be non-zero`);
-            } else {
+            if (intervalCron.hours == 0) {
+                logger.info(`CronJobs: No cronjobs for ${instance.name} Set since hour is zero`);
+            }
+
+            // else if (intervalCron.hours !== 0 && intervalCron.minutes !== 0) {
+            //     logger.warn(`CronJobs: No cronjobs for ${instance.name} Set since hour and minute are both non-zero in the interval scenario. Only one should be non-zero`);
+            // } 
+            else {
                 logger.info("HHASDASDASDASDAS");
-                let cronString = `*/${intervalCron.minutes} * * * *`;
-                if (intervalCron.hours > 0) {
-                    cronString = `0 */${intervalCron.hours} * * * *`;
-                }
+                let cronString = `0 */${intervalCron.hours} * * * *`;
+                // if (intervalCron.minutes > 0) {
+                //     cronString = `*/${intervalCron.minutes} * * * *`;
+                // }
                 const job = schedule.scheduleJob(instance.arn!, cronString, async (scheduledDate) => {
                     logger.info(`CronJob: ${instance.name}: Runnig Job ${job}: For Rotating Instance ${instance.name}`);
                     const res = await rotateInstance(instance, regionRequestHandler, this)
