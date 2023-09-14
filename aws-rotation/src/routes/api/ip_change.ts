@@ -7,7 +7,6 @@ import { logger } from "./utils";
 
 // TODO: Add error handling
 export async function rotateInstance(mInstance: Instance, regionRequesthandler: RegionRequestHandler, cronHandler: CronHandler) {
-    console.time("Rotate Instance");
     // NOTE: Does this need to be here?
     // cronHandler.attachEmptyCronToInstancesIfNeeded(regionRequesthandler.instances)
 
@@ -59,9 +58,11 @@ export async function rotateInstance(mInstance: Instance, regionRequesthandler: 
     if (!currentStaticIp || !currentStaticIpName || !currentDomain) { logger.error(``); return false };
 
     console.timeEnd("Info Gathering");
+    console.time("Rotate Instance");
     console.time("Detaching Current Static Ip");
     // INFO: Operation 1: detach current static ip
-    let res = await regionRequesthandler.detachStaticIpFromInstance(instance.name);
+    // let res = await regionRequesthandler.detachStaticIpFromInstance(instance.name);
+    let res = await regionRequesthandler.detachStaticIp(currentStaticIpName)
     if (res) {
         logger.info(`RotateInstance: ${instance.name} Detached Previous IP: ${currentStaticIpName} from instance`);
     } else {
