@@ -133,7 +133,7 @@ export class RegionRequestHandler {
         return res.domain;
     }
 
-    async clearDomainIps(domain_name: string, ip_address: string[] = []) {
+    async clearDomainIps(domain_name: string, ip_addresses: string[] = []) {
         const domain = await this.getSpecificDomainInfo(domain_name);
         if (!domain) return false;
         const domainEntries = domain.domainEntries;
@@ -142,7 +142,7 @@ export class RegionRequestHandler {
 
         for (const entry of typeAEntries) {
             if (!entry.target) continue;
-            if (ip_address.includes(entry.target)) {
+            if (ip_addresses.includes(entry.target)) {
                 const deleteDomainEntryCommand = new DeleteDomainEntryCommand({
                     domainName: domain_name,
                     domainEntry: entry,
@@ -154,11 +154,11 @@ export class RegionRequestHandler {
         return true;
     }
 
-    async pointDomainToIp(domain_name: string, ip_address: string) {
+    async pointDomainToIp(domain_name: string, domain_record_name: string, ip_address: string) {
         const createDomainEntryCommand = new CreateDomainEntryCommand({
             domainName: domain_name,
             domainEntry: {
-                name: domain_name,
+                name: domain_record_name,
                 type: "A",
                 target: ip_address,
             }

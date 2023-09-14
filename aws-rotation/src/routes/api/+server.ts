@@ -8,6 +8,7 @@ import { CronHandler } from "./crons";
 import { RegionRequestHandler } from "./aws_handlers";
 import { rotateInstance } from "./ip_change";
 import { logger } from "./utils";
+import { constantDomainsMap } from "./constant_domains";
 
 
 function sleep(ms: number) {
@@ -15,7 +16,6 @@ function sleep(ms: number) {
 }
 
 let handlersMap = new Map<string, RegionRequestHandler>();
-let constantDomainsMap = new Map<string, string>();
 
 let cronHandler = new CronHandler();
 
