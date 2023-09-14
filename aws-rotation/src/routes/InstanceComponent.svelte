@@ -9,7 +9,11 @@
 
     import { sendRotateInstanceToServer } from "../lib/strategies";
     import EditModal from "./EditModal.svelte";
-    import type { FixedTimeCron, InstanceCron } from "$lib/models";
+    import type {
+        FixedTimeCron,
+        InstanceCron,
+        RegionResources,
+    } from "$lib/models";
     import { getDomainsPointedToInstance } from "$lib/utils";
     import {
         saveCronToServer,
@@ -22,6 +26,11 @@
     $: card_disabled_class = instanceDisabled ? "opacity-50" : "";
 
     let regionResources = getContext<Writable<RegionResources[]>>("resources");
+
+    let constantDomains =
+        getContext<Writable<Map<string, string>>>("constantDomains");
+    $: constantDomain = $constantDomains.get(instance.arn ?? "");
+
     let domains = getContext<Writable<Domain[]>>("domains");
     $: connectedDomains = getDomainsPointedToInstance(instance, $domains);
 
@@ -96,6 +105,7 @@
                     {instance.isStaticIp ? "(Static)" : "(Not Static)"}</span
                 >
             </p>
+                <p class='field-label'>Constant Domain: <span class="field-value">{constantDomain ?? 'No Constant Domain'}</span></p>
             {#if connectedDomains}
                 <p class="field-label">Domains:</p>
                 {#each connectedDomains as connectedDomain}
@@ -148,6 +158,7 @@
                 bind:this={editModal}
                 {instance}
                 instanceCronCopy={instanceCron}
+                constantDomain={constantDomain}
             />
         {/if}
     </div>
@@ -159,6 +170,6 @@
     }
     .field-value {
         color: #707070;
-        font-weight: 400;;
+        font-weight: 400;
     }
 </style>

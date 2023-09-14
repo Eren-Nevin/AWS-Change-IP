@@ -1,6 +1,6 @@
 import { RegionName, type Domain, type Instance, type StaticIp } from "@aws-sdk/client-lightsail";
 import type { Writable } from "svelte/store";
-import { readCronsFromServer, refreshResource, sendCronToServer } from "./backend";
+import { readConstantDomainsFromServer, readCronsFromServer, refreshResource, sendConstantDomainToServer, sendCronToServer } from "./backend";
 import { InstanceCron, IntervalCron, RegionResources, Resource } from "./models";
 
 export async function updateAllRegionResources(regionResources: Writable<RegionResources[]>) {
@@ -10,12 +10,22 @@ export async function updateAllRegionResources(regionResources: Writable<RegionR
         allUpdatePromises.push(updateRegionResources(region, regionResources));
     }
     let res = Promise.allSettled(allUpdatePromises).then((res) => {
-        if (res) { console.log(res); }
+        if (res) { }
     }).catch((e) => console.error(e));
 
     return res;
 
     // await updateRegionResources(region, regionResources);
+}
+
+export async function updateConstantDomains(constantDomains: Writable<Map<string, string>>) {
+    const constantDomainsMap: Map<string, string> = await readConstantDomainsFromServer();
+    constantDomains.set(constantDomainsMap);
+}
+
+export async function saveContantDomainToServer(instance_id: string, domain_name: string) {
+    let res = await sendConstantDomainToServer(instance_id, domain_name);
+    return res;
 }
 
 export async function updateCrons(instanceCrons: Writable<Map<string, InstanceCron>>) {
@@ -46,7 +56,6 @@ export async function updateRegionResources(region: RegionName, regionResources:
     let instancesRes = await refreshResource(region, Resource.INSTANCE);
     if (Array.isArray(instancesRes)) {
         instances = instancesRes;
-        console.log(instances);
     }
     let staticIpsRes = await refreshResource(region, Resource.STATIC_IP);
     if (Array.isArray(staticIpsRes)) {

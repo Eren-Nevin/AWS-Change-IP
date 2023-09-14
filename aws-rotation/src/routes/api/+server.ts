@@ -15,6 +15,8 @@ function sleep(ms: number) {
 }
 
 let handlersMap = new Map<string, RegionRequestHandler>();
+let constantDomainsMap = new Map<string, string>();
+
 let cronHandler = new CronHandler();
 
 export async function POST(request: RequestEvent): Promise<Response> {
@@ -178,6 +180,26 @@ export async function POST(request: RequestEvent): Promise<Response> {
                 };
                 logger.info(`${region} Domain ${domain} Pointed to ${ip_address}`);
                 return json({ success: res });
+
+            case Command.GET_CONSTANT_DOMAINS:
+                return json({ success: true, payload: [...constantDomainsMap.entries()] });
+
+            case Command.SET_CONSTANT_DOMAIN:
+                const instance_id = searchParams.get('instance_id');
+                const domain_name = searchParams.get('domain_name');
+                console.warn(instance_id, domain_name);
+                if (!instance_id) {
+                    logger.error(`${region} No instance id provided to set constant domain`);
+                    return json({ error: 'no instance id' })
+                };
+                if (!domain_name) {
+                    logger.error(`${region} No domain name provided to set constant domain`);
+                    return json({ error: 'no domain name' })
+                };
+                constantDomainsMap.set(instance_id, domain_name);
+                logger.info(`${region} Set Constant Domain ${domain_name} for instance ${instance_id}`);
+                return json({ success: true });
+
             case Command.GET_CRONS:
                 const crons = cronHandler.readCrons();
                 logger.info(`${region} Crons Read ${crons.map((e) => e.toString()).join("\n")}`);

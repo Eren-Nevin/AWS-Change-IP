@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { saveCronToServer } from "$lib/logic";
+    import { saveContantDomainToServer, saveCronToServer } from "$lib/logic";
     import {
         IntervalCron,
         type InstanceCron,
@@ -13,13 +13,18 @@
     export let opened = false;
 
     export let instance: Instance;
+    export let instanceCronCopy: InstanceCron | undefined;
+    export let constantDomain: string | undefined;
+
+    let constantDomains =
+        getContext<Writable<Map<string, string>>>("constantDomains");
+    // $: constantDomain = $constantDomains.get(instance.arn ?? "");
 
     let domains = getContext<Writable<Domain[]>>("domains");
     $: connectedDomains = getDomainsPointedToInstance(instance, $domains);
     let instanceCrons =
         getContext<Writable<Map<string, InstanceCron>>>("crons");
 
-    export let instanceCronCopy: InstanceCron | undefined;
     console.log(instanceCronCopy);
 
     export function open() {
@@ -54,6 +59,24 @@
     }
 
     export async function save() {
+        await saveCron();
+        await saveConstantDomain();
+        close();
+    }
+
+    export async function saveConstantDomain() {
+        if (!constantDomain || !instance.arn) {
+            return;
+        }
+        await saveContantDomainToServer(instance.arn, constantDomain);
+        constantDomains.update((domains) => {
+            if (!instance.arn || !constantDomain) return domains;
+            domains.set(instance.arn, constantDomain);
+            return domains;
+        });
+    }
+
+    export async function saveCron() {
         if (!instanceCronCopy) {
             return;
         }
@@ -81,7 +104,6 @@
             crons.set(instance.arn ?? "", instanceCronCopy);
             return crons;
         });
-        close();
     }
     export function cancel() {
         close();
@@ -105,6 +127,16 @@
                     IP: {instance.publicIpAddress}
                     {instance.isStaticIp ? "(Static)" : "(Not Static)"}
                 </p>
+                <label
+                    class="w-full mr-auto label cursor-pointer flex flex-row space-x-2"
+                >
+                    Constant Domain
+                    <input
+                        type="text"
+                        class="input input-sm input-bordered w-full max-w-xs"
+                        bind:value={constantDomain}
+                    />
+                </label>
                 {#if connectedDomains}
                     <p>Domains:</p>
                     {#each connectedDomains as connectedDomain}

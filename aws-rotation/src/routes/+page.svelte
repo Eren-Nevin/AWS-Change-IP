@@ -17,11 +17,13 @@
         updateDomains,
         updateRegionResources,
         updateCrons,
+        updateConstantDomains,
     } from "$lib/logic";
     import { downloadAllLogsFromServer } from "$lib/backend";
 
     let regionResources = getContext<Writable<RegionResources[]>>("resources");
     let domains = getContext<Writable<Domain[]>>("domains");
+    let constantDomains = getContext<Writable<Map<string, string>>>("constantDomains");
     let instanceCrons =
         getContext<Writable<Map<string, InstanceCron>>>("crons");
 
@@ -39,25 +41,31 @@
 
     async function refreshData() {
         if (!mounted) return;
-        console.log("REFERESHING DATA");
         refreshing = true;
-        console.log("Refreshing data");
         console.log(selectedRegion);
+        await updateConstantDomains(constantDomains);
+        console.log("Constant DOMAINS");
+        console.log($constantDomains);
         if (allRegions) {
             await updateAllRegionResources(regionResources);
         } else {
             await updateRegionResources(selectedRegion, regionResources);
         }
         await updateCrons(instanceCrons);
+        console.log("DOMAINS");
+        console.log($instanceCrons);
         await updateDomains(domains);
+        console.log("DOMAINS");
+        console.log($domains);
         refreshing = false;
     }
 
     onMount(async () => {
         console.log("MOUNT");
         refreshing = true;
+        await updateConstantDomains(constantDomains);
+        console.log($constantDomains);
         await updateAllRegionResources(regionResources);
-        await updateCrons(instanceCrons);
         refreshing = false;
         mounted = true;
     });

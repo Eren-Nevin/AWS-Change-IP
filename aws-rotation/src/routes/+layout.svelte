@@ -7,10 +7,12 @@
 
     const regionResources = writable<RegionResources[]>([]);
     const domains = writable<Domain[]>([]);
+    const constantDomains = writable<Map<string, string>>(new Map());
     const instanceCronMap = writable<Map<string, InstanceCron>>(new Map());
 
     setContext("resources", regionResources);
     setContext("domains", domains);
+    setContext("constantDomains", constantDomains);
     setContext("crons", instanceCronMap);
 </script>
 

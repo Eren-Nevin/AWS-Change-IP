@@ -13,6 +13,33 @@ export async function callBackend(searchParams: URLSearchParams, body = {}) {
     return res
 }
 
+export async function readConstantDomainsFromServer() {
+    let searchParams = new URLSearchParams();
+    searchParams.set("region", RegionName.US_EAST_1);
+    searchParams.set("command", Command.GET_CONSTANT_DOMAINS);
+    let res = await callBackend(searchParams);
+    const resObj = await res.json();
+    if (resObj['success']) {
+        console.log(resObj);
+        return new Map<string, string>(resObj['payload'])
+    }
+    else {
+        throw new Error(resObj['error']);
+    }
+}
+
+export async function sendConstantDomainToServer(instance_id: string, domain_name: string) {
+    let searchParams = new URLSearchParams();
+    searchParams.set("region", RegionName.US_EAST_1);
+    searchParams.set("command", Command.SET_CONSTANT_DOMAIN);
+    searchParams.set("instance_id", instance_id);
+    searchParams.set("domain_name", domain_name);
+    let res = await callBackend(searchParams);
+    const resObj = await res.json();
+    console.log(resObj);
+    return resObj;
+}
+
 export async function readCronsFromServer(): Promise<InstanceCron[]> {
     let searchParams = new URLSearchParams();
     searchParams.set("region", RegionName.US_EAST_1);

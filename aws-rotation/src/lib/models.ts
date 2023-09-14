@@ -2,6 +2,7 @@ import { RegionName, type Domain, type Instance, type StaticIp } from "@aws-sdk/
 import type { Writable } from "svelte/store";
 import { refreshResource } from "./backend";
 
+
 export { RegionName } from "@aws-sdk/client-lightsail";
 export enum Resource {
     STATIC_IP = 'staticIp',
@@ -59,6 +60,8 @@ export enum Command {
     POINT_DOMAIN = 'point_domain',
     GET_CRONS = 'get_crons',
     SET_CRON = 'set_crons',
+    GET_CONSTANT_DOMAINS = 'get_constant_domains',
+    SET_CONSTANT_DOMAIN = 'set_constant_domain',
     ROTATE_IP = 'rotate_ip'
 }
 
