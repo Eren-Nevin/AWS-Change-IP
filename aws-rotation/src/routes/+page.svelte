@@ -42,30 +42,24 @@
     async function refreshData() {
         if (!mounted) return;
         refreshing = true;
-        console.log(selectedRegion);
-        await updateConstantDomains(constantDomains);
-        console.log("Constant DOMAINS");
-        console.log($constantDomains);
         if (allRegions) {
             await updateAllRegionResources(regionResources);
         } else {
             await updateRegionResources(selectedRegion, regionResources);
         }
+        await updateConstantDomains(constantDomains);
         await updateCrons(instanceCrons);
-        console.log("DOMAINS");
-        console.log($instanceCrons);
         await updateDomains(domains);
-        console.log("DOMAINS");
-        console.log($domains);
         refreshing = false;
     }
 
     onMount(async () => {
         console.log("MOUNT");
         refreshing = true;
-        await updateConstantDomains(constantDomains);
-        console.log($constantDomains);
         await updateAllRegionResources(regionResources);
+        await updateConstantDomains(constantDomains);
+        await updateDomains(domains);
+        await updateCrons(instanceCrons);
         refreshing = false;
         mounted = true;
     });

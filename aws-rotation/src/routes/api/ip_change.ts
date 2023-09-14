@@ -12,7 +12,6 @@ export async function rotateInstance(mInstance: Instance, regionRequesthandler: 
 
 
     // INFO: Information gathering and validation
-    console.time("Info Gathering");
     const instanceId: string = mInstance.arn ?? '';
     if (instanceId === '') { logger.error(`RotateInstance: ${mInstance.name} instance id empty`); return false };
     if (!mInstance.name) { logger.error(`RotateInstance: ${mInstance.name} instance name empty`); return false };
@@ -57,8 +56,8 @@ export async function rotateInstance(mInstance: Instance, regionRequesthandler: 
     logger.info(`RotateInstance: ${instance.name} connected domain ${currentDomain}`);
     if (!currentStaticIp || !currentStaticIpName || !currentDomain) { logger.error(``); return false };
 
-    console.timeEnd("Info Gathering");
     console.time("Rotate Instance");
+    logger.info(`RotateInstance: ${instance.name} Started`);
     console.time("Detaching Current Static Ip");
     // INFO: Operation 1: detach current static ip
     // let res = await regionRequesthandler.detachStaticIpFromInstance(instance.name);
