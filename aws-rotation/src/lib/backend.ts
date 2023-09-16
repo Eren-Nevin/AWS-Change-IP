@@ -13,6 +13,22 @@ export async function callBackend(searchParams: URLSearchParams, body = {}) {
     return res
 }
 
+export async function saveConfigToServer() {
+    let searchParams = new URLSearchParams();
+    searchParams.set("region", RegionName.US_EAST_1);
+    searchParams.set("command", Command.SAVE_CONFIG);
+    let res = await callBackend(searchParams);
+    return await res.json();
+}
+
+export async function loadConfigFromServer() {
+    let searchParams = new URLSearchParams();
+    searchParams.set("region", RegionName.US_EAST_1);
+    searchParams.set("command", Command.LOAD_CONFIG);
+    let res = await callBackend(searchParams);
+    return await res.json();
+}
+
 export async function readConstantDomainsFromServer() {
     let searchParams = new URLSearchParams();
     searchParams.set("region", RegionName.US_EAST_1);

@@ -19,11 +19,16 @@
         updateCrons,
         updateConstantDomains,
     } from "$lib/logic";
-    import { downloadAllLogsFromServer } from "$lib/backend";
+    import {
+        downloadAllLogsFromServer,
+        saveConfigToServer,
+        loadConfigFromServer,
+    } from "$lib/backend";
 
     let regionResources = getContext<Writable<RegionResources[]>>("resources");
     let domains = getContext<Writable<Domain[]>>("domains");
-    let constantDomains = getContext<Writable<Map<string, string>>>("constantDomains");
+    let constantDomains =
+        getContext<Writable<Map<string, string>>>("constantDomains");
     let instanceCrons =
         getContext<Writable<Map<string, InstanceCron>>>("crons");
 
@@ -106,6 +111,29 @@
         >
             Referesh
         </button>
+        {#if !refreshing}
+            <button
+                class="btn btn-primary"
+                on:click={async () => {
+                    // await updateRegionResources(selectedRegion, regionResources);
+                    await saveConfigToServer();
+                }}
+            >
+                Save Config
+            </button>
+        {/if}
+        {#if !refreshing}
+            <button
+                class="btn btn-primary"
+                on:click={async () => {
+                    // await updateRegionResources(selectedRegion, regionResources);
+                    await loadConfigFromServer();
+                    window.location.reload();
+                }}
+            >
+                Load Config
+            </button>
+        {/if}
         <button
             class="btn btn-primary"
             on:click={async () => {

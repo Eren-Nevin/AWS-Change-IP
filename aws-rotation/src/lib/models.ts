@@ -62,6 +62,8 @@ export enum Command {
     SET_CRON = 'set_crons',
     GET_CONSTANT_DOMAINS = 'get_constant_domains',
     SET_CONSTANT_DOMAIN = 'set_constant_domain',
-    ROTATE_IP = 'rotate_ip'
+    ROTATE_IP = 'rotate_ip',
+    SAVE_CONFIG = 'save_config',
+    LOAD_CONFIG = 'load_config',
 }
 
