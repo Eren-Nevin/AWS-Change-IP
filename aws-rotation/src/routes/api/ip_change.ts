@@ -1,6 +1,6 @@
 import { generateStaticIpName, wait } from "$lib/utils";
 import type { Domain, Instance, StaticIp } from "@aws-sdk/client-lightsail";
-import type { RegionRequestHandler } from "./aws_handlers";
+import { regionHandlersMap, RegionRequestHandler } from "./aws_handlers";
 import { constantDomainsMap } from "./constant_domains";
 import type { CronHandler } from "./crons";
 import { logger } from "./utils";
@@ -8,7 +8,12 @@ import { logger } from "./utils";
 let rotateInstanceLock = false;
 
 // TODO: Add error handling
-export async function rotateInstance(mInstance: Instance, regionRequesthandler: RegionRequestHandler, cronHandler: CronHandler) {
+export async function rotateInstance(mInstance: Instance) {
+    const regionRequestHandler = regionHandlersMap.get(mInstance.location?.regionName!);
+    if (!regionRequestHandler) {
+        logger.error(`RotateInstance: ${mInstance.name} region request handler not found`);
+        return false;
+    }
     // NOTE: Does this need to be here?
     // cronHandler.attachEmptyCronToInstancesIfNeeded(regionRequesthandler.instances)
 
@@ -47,11 +52,12 @@ export async function rotateInstance(mInstance: Instance, regionRequesthandler: 
         rotateInstanceLock = false;
         return false
     };
-    const refreshedInstances = await regionRequesthandler.refreshInstances()
-    const refreshedDomains = await regionRequesthandler.refreshDomains()
-    const firstStaticIPReferesh = await regionRequesthandler.refreshStaticIps()
 
-    let instance = regionRequesthandler.instances.find((i) => i.arn === mInstance.arn);
+    const refreshedInstances = await regionRequestHandler.refreshInstances()
+    const refreshedDomains = await regionRequestHandler.refreshDomains()
+    const firstStaticIPReferesh = await regionRequestHandler.refreshStaticIps()
+
+    let instance = regionRequestHandler.instances.find((i) => i.arn === mInstance.arn);
     if (!instance) {
         logger.error(`RotateInstance: ${mInstance.name} not found`);
 
@@ -67,7 +73,7 @@ export async function rotateInstance(mInstance: Instance, regionRequesthandler: 
 
 
     const currentStaticIpAddress = instance.publicIpAddress;
-    const currentStaticIp = regionRequesthandler.static_ips.find((ip) => ip.ipAddress === currentStaticIpAddress);
+    const currentStaticIp = regionRequestHandler.static_ips.find((ip) => ip.ipAddress === currentStaticIpAddress);
     if (!currentStaticIp) {
         logger.warn(`RotateInstance: ${instance.name} doesnt have static ip`);
         rotateInstanceLock = false;
@@ -87,7 +93,7 @@ export async function rotateInstance(mInstance: Instance, regionRequesthandler: 
 
     let currentDomain: Domain | undefined
 
-    for (let domain of regionRequesthandler.domains) {
+    for (let domain of regionRequestHandler.domains) {
         const addressDomainEntries = domain.domainEntries?.filter((de) => de.type === "A");
         if (addressDomainEntries) {
             if (addressDomainEntries.find((de) => de.name === constantDomainName)) {
@@ -109,7 +115,7 @@ export async function rotateInstance(mInstance: Instance, regionRequesthandler: 
     logger.info(`RotateInstance: ${instance.name} Started`);
     // INFO: Operation 1: detach current static ip
     // let res = await regionRequesthandler.detachStaticIpFromInstance(instance.name);
-    let res = await regionRequesthandler.detachStaticIp(currentStaticIpName)
+    let res = await regionRequestHandler.detachStaticIp(currentStaticIpName)
     if (res) {
         logger.info(`RotateInstance: ${instance.name} Detached Previous IP: ${currentStaticIpName} from instance`);
     } else {
@@ -120,7 +126,7 @@ export async function rotateInstance(mInstance: Instance, regionRequesthandler: 
     }
 
     // INFO: Operation 2: release detached static ip
-    res = await regionRequesthandler.releaseStaticIp(currentStaticIpName);
+    res = await regionRequestHandler.releaseStaticIp(currentStaticIpName);
     if (res) {
         logger.info(`RotateInstance: ${instance.name} Released Previous IP: ${currentStaticIpName}`);
     } else {
@@ -134,7 +140,7 @@ export async function rotateInstance(mInstance: Instance, regionRequesthandler: 
 
     let newIpName = generateStaticIpName(Math.floor(Math.random() * 10000000000));
 
-    res = await regionRequesthandler.allocateStaticIp(newIpName);
+    res = await regionRequestHandler.allocateStaticIp(newIpName);
     if (res) {
         logger.info(`RotateInstance: ${instance.name} Allocated New Static IP: ${newIpName}`);
     } else {
@@ -145,7 +151,7 @@ export async function rotateInstance(mInstance: Instance, regionRequesthandler: 
     }
 
     // INFO: Operation 4: Attach allocated new ip:
-    res = await regionRequesthandler.attachStaticIpToInstance(instance.name, newIpName);
+    res = await regionRequestHandler.attachStaticIpToInstance(instance.name, newIpName);
     if (res) {
         logger.info(`RotateInstance: ${instance.name} Attached New IP: ${newIpName} to instance`);
     } else {
@@ -155,17 +161,17 @@ export async function rotateInstance(mInstance: Instance, regionRequesthandler: 
     }
 
     // INFO: Operation 5: Find ip address of new static ip
-    const refreshedStaticIPs = await regionRequesthandler.refreshStaticIps()
+    const refreshedStaticIPs = await regionRequestHandler.refreshStaticIps()
     if (!refreshedStaticIPs) {
         logger.error(`RotateInstance: ${instance.name} Failed to refresh static ips`);
         rotateInstanceLock = false;
         return false;
     }
-    let newStaticIpAddress = regionRequesthandler.static_ips.find((ip) => ip.name === newIpName)?.ipAddress;
+    let newStaticIpAddress = regionRequestHandler.static_ips.find((ip) => ip.name === newIpName)?.ipAddress;
     if (!newStaticIpAddress) { logger.error(`RotateInstance: ${instance.name} Failed to find new static ip address`); return false }
 
     // INFO: Operation 6: Clear previous domain entries pointing to previous static ip
-    res = await regionRequesthandler.clearDomainIps(currentDomain.name!,
+    res = await regionRequestHandler.clearDomainIps(currentDomain.name!,
         [currentStaticIp.ipAddress!]);
     if (!res) {
         logger.error(`RotateInstance: ${instance.name} Failed to clear previous domain entries pointing to previous static ip`);
@@ -178,7 +184,7 @@ export async function rotateInstance(mInstance: Instance, regionRequesthandler: 
 
 
     // INFO: Operation 7: Point domain to new static ip
-    res = await regionRequesthandler.pointDomainToIp(currentDomain?.name!, constantDomainName, newStaticIpAddress);
+    res = await regionRequestHandler.pointDomainToIp(currentDomain?.name!, constantDomainName, newStaticIpAddress);
     if (res) {
         logger.info(`RotateInstance: ${instance.name} Pointed domain ${currentDomain} to new ip ${newStaticIpAddress} by ${constantDomainName}`);
     } else {

@@ -1,7 +1,8 @@
+import fs from 'fs';
 import schedule from 'node-schedule';
 import { FixedTimeCron, InstanceCron, IntervalCron } from "$lib/models";
 import type { Instance } from "@aws-sdk/client-lightsail";
-import type { RegionRequestHandler } from './aws_handlers';
+import { regionHandlersMap, RegionRequestHandler, } from './aws_handlers';
 import { rotateInstance } from './ip_change';
 import { logger } from './utils';
 
@@ -11,6 +12,33 @@ export class CronHandler {
     constructor(existingCrons?: Map<string, InstanceCron>) {
         this.allCrons = existingCrons ?? new Map<string, InstanceCron>();
         this.allJobs = new Map<string, schedule.Job[]>();
+    }
+
+    async saveCronsToFile() {
+        const onlyCrons = Array.from(this.allCrons.values());
+
+        const cronsJson = JSON.stringify(onlyCrons);
+        await fs.promises.writeFile('./appData/crons.json', cronsJson, { encoding: 'utf8' });
+        logger.info(`Saved crons to file: ${JSON.stringify(Object.fromEntries(this.allCrons.entries()))}`);
+        return true;
+    }
+
+    async loadCronsFromFileAndReschedule() {
+        try {
+            const cronsJson = await fs.promises.readFile('./appData/crons.json', { encoding: 'utf8' });
+            const crons = JSON.parse(cronsJson);
+            this.allCrons = new Map<string, InstanceCron>(crons.map((cron: InstanceCron) => [cron.instanceId, cron]));
+            logger.info(`Loaded crons from file: ${JSON.stringify(Object.fromEntries(this.allCrons.entries()))}`);
+
+            this.rescheduleAllCrons();
+
+            // TODO: Remove all jobs
+            return true;
+        } catch (err) {
+            console.error(err);
+            logger.error(`Failed to load crons from file`);
+            return false;
+        }
     }
 
     readCrons() {
@@ -31,17 +59,43 @@ export class CronHandler {
         }
     }
 
-    saveCron(cron: InstanceCron, instance: Instance, regionRequestHandler: RegionRequestHandler) {
-        this.allCrons.set(cron.instanceId, cron);
-        this.scheduleCron(cron, instance, regionRequestHandler);
+    rescheduleAllCrons() {
+        const crons = Array.from(this.allCrons.values());
+        let res = true;
+        crons.forEach((cron) => {
+            res = this.rescheduleCron(cron);
+            if (!res) {
+                logger.error(`CronJobs: Failed to reschedule ALL cron for instance ${cron.instanceId}`);
+                return false;
+            }
+
+        })
+        return res;
     }
 
-    scheduleCron(cron: InstanceCron, instance: Instance, regionRequestHandler: RegionRequestHandler) {
+    saveAndScheduleCron(cron: InstanceCron) {
+        this.allCrons.set(cron.instanceId, cron);
+        const res = this.rescheduleCron(cron);
+        return res;
+    }
+
+    rescheduleCron(cron: InstanceCron) {
+        const handler = regionHandlersMap.get(cron.region);
+        if (!handler) {
+            logger.error(`CronJobs: Region ${cron.region} Not Found`);
+            return false;
+        }
+        const instance = handler.instances.find((i) => i.arn === cron.instanceId);
+        if (!instance) {
+            logger.error(`CronJobs: Instance ${cron.instanceId} Not Found in region ${cron.region}`);
+            return false;
+        }
+
         let instanceAllJobs = this.allJobs.get(cron.instanceId) || [];
         instanceAllJobs.forEach((job) => job.cancel());
         if (!cron.enabled) {
             logger.info(`CronJobs: All cronjobs for ${instance.name} Disabled`);
-            return;
+            return false;
         }
         instanceAllJobs = [];
         let intervalCron = cron.intervalCron;
@@ -53,7 +107,7 @@ export class CronHandler {
                 // rule.tz = 'Asia/Tehran';
                 const job = schedule.scheduleJob(instance.arn!, rule, async (scheduledDate) => {
                     logger.info(`CronJob: ${instance.name}: Runnig Job ${job}: For Rotating Instance ${instance.name}`);
-                    const res = await rotateInstance(instance, regionRequestHandler, this)
+                    const res = await rotateInstance(instance)
                     if (res) {
                         logger.info(`CronJob: ${instance.name}: Runnig Job ${job}Instance rotated ${instance.name}`);
                     } else {
@@ -72,14 +126,11 @@ export class CronHandler {
             //     logger.warn(`CronJobs: No cronjobs for ${instance.name} Set since hour and minute are both non-zero in the interval scenario. Only one should be non-zero`);
             // } 
             else {
-                logger.info("HHASDASDASDASDAS");
                 let cronString = `0 0 */${intervalCron.hours} * * *`;
-                // let cronString = `0 */${intervalCron.hours} * * * *`;
-                // let cronString = `*/${intervalCron.hours} * * * * *`;
 
                 const job = schedule.scheduleJob(instance.arn!, cronString, async (scheduledDate) => {
                     logger.info(`CronJob: ${instance.name}: Runnig Job ${job}: For Rotating Instance ${instance.name}`);
-                    const res = await rotateInstance(instance, regionRequestHandler, this)
+                    const res = await rotateInstance(instance)
                     if (res) {
                         logger.info(`CronJob: ${instance.name}: Runnig Job ${job}Instance rotated ${instance.name}`);
                     } else {
@@ -92,6 +143,8 @@ export class CronHandler {
         }
         this.allJobs.set(cron.instanceId, instanceAllJobs);
         logger.info(`CronJobs:Cronjobs for ${instance.name} Set`);
+
+        return true;
     }
 
     convertFixedTimesCronToRule(fixedTimesCrons: FixedTimeCron[]) {
@@ -108,7 +161,7 @@ export class CronHandler {
 
     createEmptyCronForInstance(instance: Instance) {
         if (instance.arn === undefined) return;
-        let cron = new InstanceCron(instance.arn, new IntervalCron(0, 0), [], false);
+        let cron = new InstanceCron(instance.arn, instance.location?.regionName!, new IntervalCron(0, 0), [], false, false);
         return cron;
     }
 

@@ -5,7 +5,7 @@ import fs from 'fs';
 import type { RequestEvent } from "./$types";
 import { Command, Resource, RegionName, IntervalCron, InstanceCron, FixedTimeCron } from "../../lib/models";
 import { CronHandler } from "./crons";
-import { RegionRequestHandler } from "./aws_handlers";
+import { regionHandlersMap, RegionRequestHandler } from "./aws_handlers";
 import { rotateInstance } from "./ip_change";
 import { logger } from "./utils";
 import { constantDomainsMap, loadConstantDomainsFromFile, saveConstantDomainsToFile } from "./constant_domains";
@@ -14,8 +14,6 @@ import { constantDomainsMap, loadConstantDomainsFromFile, saveConstantDomainsToF
 function sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
-
-let regionHandlersMap = new Map<string, RegionRequestHandler>();
 
 let cronHandler = new CronHandler();
 
@@ -37,9 +35,7 @@ export async function POST(request: RequestEvent): Promise<Response> {
         }
 
 
-        let handler = regionHandlersMap.get(region) ?? new RegionRequestHandler(region);
-        // NOTE: Performance optimization?
-        regionHandlersMap.set(region, handler);
+        let handler = regionHandlersMap.get(region)!;
         let res = null;
         switch (command) {
             case Command.GET_RESOURCE:
@@ -208,6 +204,7 @@ export async function POST(request: RequestEvent): Promise<Response> {
                 const cronInstanceRaw = await request.request.json();
                 const cronInstance = new InstanceCron(
                     cronInstanceRaw.instanceId,
+                    region,
                     new IntervalCron(cronInstanceRaw.intervalCron.hours, cronInstanceRaw.intervalCron.minutes),
                     cronInstanceRaw.fixedTimeCrons.map((e) => new FixedTimeCron(e.hour, e.minute)),
                     cronInstanceRaw.useFixedTimeCron,
@@ -217,10 +214,8 @@ export async function POST(request: RequestEvent): Promise<Response> {
                 if (!currentInstance) {
                     logger.error(`${region} Could not find instance ${instanceName}`);
                 }
-                cronHandler.saveCron(
+                cronHandler.saveAndScheduleCron(
                     cronInstance,
-                    currentInstance!,
-                    handler
                 );
                 logger.info(`${region} Successfuly Saved Cron ${cronInstance.toString()}`);
 
@@ -241,7 +236,9 @@ export async function POST(request: RequestEvent): Promise<Response> {
                 }
 
             case Command.SAVE_CONFIG:
-                res = await saveConstantDomainsToFile()
+                const savedConstantDomains = await saveConstantDomainsToFile()
+                const savedCrons = await cronHandler.saveCronsToFile()
+                res = savedConstantDomains && savedCrons;
                 if (res) {
                     logger.info(`${region} Saved Config`);
                     return json({ success: res });
@@ -250,7 +247,10 @@ export async function POST(request: RequestEvent): Promise<Response> {
                     return json({ error: 'could not save config' });
                 }
             case Command.LOAD_CONFIG:
-                res = await loadConstantDomainsFromFile()
+
+                const loadedConstantDomains = await loadConstantDomainsFromFile()
+                const loadedCrons = await cronHandler.loadCronsFromFileAndReschedule()
+                res = loadedConstantDomains && loadedCrons;
                 if (res) {
                     logger.info(`${region} Loaded Config`);
                     return json({ success: res });

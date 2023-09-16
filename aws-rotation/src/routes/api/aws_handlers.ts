@@ -24,6 +24,8 @@ class MyCredentials implements Credentials {
     secretAccessKey: string = env.PUBLIC_SECRET ?? "";
 }
 
+export let regionHandlersMap = new Map<string, RegionRequestHandler>();
+
 let domainClientDefaults = {
     credentialDefaultProvider: (input: any) => async () => {
         return new MyCredentials();

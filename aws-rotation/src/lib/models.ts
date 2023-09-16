@@ -30,10 +30,11 @@ export class IntervalCron {
 export class InstanceCron {
     constructor(
         public instanceId: string,
+        public region: string,
         public intervalCron: IntervalCron,
         public fixedTimeCrons: FixedTimeCron[],
         public useFixedTimeCron: boolean = false,
-        public enabled: boolean = true,
+        public enabled: boolean = false,
     ) {
     }
     toString() {

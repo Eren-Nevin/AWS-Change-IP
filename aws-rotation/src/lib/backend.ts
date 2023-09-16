@@ -83,11 +83,11 @@ export async function sendCronToServer(region: string, cron: InstanceCron, insta
 function _convertServerInstanceCronToInstanceCron(resInstanceCron) {
     let instanceCron = new InstanceCron(
         resInstanceCron.instanceId,
+        resInstanceCron.region,
         new IntervalCron(resInstanceCron.intervalCron.hours, resInstanceCron.intervalCron.minutes),
         resInstanceCron.fixedTimeCrons.map((e) => new FixedTimeCron(e.hour, e.minute)),
-
-        // resInstanceCron.fixedTimeCrons,
-        resInstanceCron.useFixedTimeCron
+        resInstanceCron.useFixedTimeCron,
+        resInstanceCron.enabled,
     );
     return instanceCron;
 }

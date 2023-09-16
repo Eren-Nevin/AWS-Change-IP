@@ -101,7 +101,7 @@
         <!-- <StaticIPsSegment /> -->
         <!-- <DomainsSegment /> -->
     </div>
-    <div class="flex flex-row gap-2 justify-end">
+    <div class="flex flex-wrap gap-2 justify-end">
         <button
             class="btn btn-primary"
             on:click={async () => {
@@ -116,7 +116,9 @@
                 class="btn btn-primary"
                 on:click={async () => {
                     // await updateRegionResources(selectedRegion, regionResources);
+                    refreshing = true;
                     await saveConfigToServer();
+                    refreshing = false;
                 }}
             >
                 Save Config
