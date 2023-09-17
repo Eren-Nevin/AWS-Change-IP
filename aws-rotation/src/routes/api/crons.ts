@@ -113,16 +113,16 @@ export class CronHandler {
                 rule.minute = fixedTimeCron.minute;
                 rule.tz = 'GMT';
                 const job = schedule.scheduleJob(instance.arn!, rule, async (scheduledDate) => {
-                    logger.info(`CronJob: ${instance.name}: Runnig Job ${job}: For Rotating Instance ${instance.name}`);
+                    logger.info(`CronJob: ${instance.name}: Runnig Job ${job.name}: For Rotating Instance ${instance.name}`);
                     const res = await rotateInstance(instance)
                     if (res) {
-                        logger.info(`CronJob: ${instance.name}: Runnig Job ${job}Instance rotated ${instance.name}`);
+                        logger.info(`CronJob: ${instance.name}: Runnig Job ${job.name}Instance rotated ${instance.name}`);
                     } else {
-                        logger.error(`CronJob: ${instance.name}: Runnig Job ${job}Instance FAILED TO ROTATE ${instance.name}`);
+                        logger.error(`CronJob: ${instance.name}: Runnig Job ${job.name}Instance FAILED TO ROTATE ${instance.name}`);
                     }
                 });
                 instanceAllJobs.push(job);
-                logger.info(`Job ${job} Scheduled`);
+                logger.info(`Job ${job.name} Scheduled`);
             }
         } else {
             if (intervalCron.hours == 0) {
@@ -136,16 +136,16 @@ export class CronHandler {
                 let cronString = `0 0 */${intervalCron.hours} * * *`;
 
                 const job = schedule.scheduleJob(instance.arn!, cronString, async (scheduledDate) => {
-                    logger.info(`CronJob: ${instance.name}: Runnig Job ${job}: For Rotating Instance ${instance.name}`);
+                    logger.info(`CronJob: ${instance.name}: Runnig Job ${job.name}: For Rotating Instance ${instance.name}`);
                     const res = await rotateInstance(instance)
                     if (res) {
-                        logger.info(`CronJob: ${instance.name}: Runnig Job ${job}Instance rotated ${instance.name}`);
+                        logger.info(`CronJob: ${instance.name}: Runnig Job ${job.name}Instance rotated ${instance.name}`);
                     } else {
-                        logger.error(`CronJob: ${instance.name}: Runnig Job ${job}Instance FAILED TO ROTATE ${instance.name}`);
+                        logger.error(`CronJob: ${instance.name}: Runnig Job ${job.name}Instance FAILED TO ROTATE ${instance.name}`);
                     }
                 });
                 instanceAllJobs.push(job);
-                logger.error(`Job ${job} Scheduled`);
+                logger.info(`Job ${job.name} Scheduled`);
             }
         }
         this.allJobs.set(cron.instanceId, instanceAllJobs);

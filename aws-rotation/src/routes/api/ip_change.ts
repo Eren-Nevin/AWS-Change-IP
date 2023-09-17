@@ -80,7 +80,7 @@ export async function rotateInstance(mInstance: Instance) {
         return false
     }
     const currentStaticIpName = currentStaticIp?.name;
-    logger.info(`RotateInstance: ${instance.name} current staic ip: ${currentStaticIp}`);
+    logger.info(`RotateInstance: ${instance.name} current staic ip: ${currentStaticIp?.name}`);
 
 
     const constantDomainName = constantDomainsMap.get(instance.arn!)
@@ -104,7 +104,7 @@ export async function rotateInstance(mInstance: Instance) {
     }
 
 
-    logger.info(`RotateInstance: ${instance.name} connected domain ${currentDomain}`);
+    logger.info(`RotateInstance: ${instance.name} connected domain ${currentDomain?.name}`);
     if (!currentStaticIp || !currentStaticIpName || !currentDomain) {
         logger.error(``);
 
@@ -186,7 +186,7 @@ export async function rotateInstance(mInstance: Instance) {
     // INFO: Operation 7: Point domain to new static ip
     res = await regionRequestHandler.pointDomainToIp(currentDomain?.name!, constantDomainName, newStaticIpAddress);
     if (res) {
-        logger.info(`RotateInstance: ${instance.name} Pointed domain ${currentDomain} to new ip ${newStaticIpAddress} by ${constantDomainName}`);
+        logger.info(`RotateInstance: ${instance.name} Pointed domain ${currentDomain.name} to new ip ${newStaticIpAddress} by ${constantDomainName}`);
     } else {
         logger.error(`RotateInstance: ${instance.name} Failed to point domain ${currentDomain} to new ip ${newStaticIpAddress} by ${constantDomainName}`);
 
