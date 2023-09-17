@@ -14,10 +14,24 @@ export enum Resource {
 export class FixedTimeCron {
     constructor(public hour: number, public minute: number) {
     }
+
     toString() {
-        return `At ${this.hour}:${this.minute}`
+        return `At ${this.hour}:${this.minute} GMT (${this.toAnotherTimezoneString(3, 30)} IRST)`
     }
+
+    toAnotherTimezoneString(hourDifference: number, minuteDifference: number) {
+        let hourCarry = 0
+        if (this.minute + minuteDifference >= 60) {
+            hourCarry = 1;
+        }
+        let newMinutes = (this.minute + minuteDifference) % 60;
+        let newHours = (this.hour + hourDifference + hourCarry) % 24;
+        return `${newHours}:${newMinutes}`
+    }
+
 }
+
+
 
 export class IntervalCron {
     constructor(public hours: number, public minutes: number) {
