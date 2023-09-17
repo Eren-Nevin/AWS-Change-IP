@@ -1,4 +1,6 @@
 .DS_Store
+/appData
+appData/*
 node_modules
 /build
 /.svelte-kit
