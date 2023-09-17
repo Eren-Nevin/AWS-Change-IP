@@ -5,6 +5,7 @@ import type { Instance } from "@aws-sdk/client-lightsail";
 import { regionHandlersMap, RegionRequestHandler, } from './aws_handlers';
 import { rotateInstance } from './ip_change';
 import { logger } from './utils';
+import { constantDomainsMap } from './constant_domains';
 
 export class CronHandler {
     public allCrons: Map<string, InstanceCron>;
@@ -91,6 +92,12 @@ export class CronHandler {
             return false;
         }
 
+        const hasConstantDomain = constantDomainsMap.get(cron.instanceId) !== undefined;
+        if (!hasConstantDomain) {
+            logger.error(`CronJobs: Instance ${cron.instanceId} doesn't have a constant domain`);
+            return false;
+        }
+
         let instanceAllJobs = this.allJobs.get(cron.instanceId) || [];
         instanceAllJobs.forEach((job) => job.cancel());
         if (!cron.enabled) {
@@ -104,7 +111,7 @@ export class CronHandler {
                 const rule = new schedule.RecurrenceRule();
                 rule.hour = fixedTimeCron.hour;
                 rule.minute = fixedTimeCron.minute;
-                // rule.tz = 'Asia/Tehran';
+                rule.tz = 'GMT';
                 const job = schedule.scheduleJob(instance.arn!, rule, async (scheduledDate) => {
                     logger.info(`CronJob: ${instance.name}: Runnig Job ${job}: For Rotating Instance ${instance.name}`);
                     const res = await rotateInstance(instance)
