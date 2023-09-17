@@ -7,6 +7,7 @@ export async function updateAllRegionResources(regionResources: Writable<RegionR
     let regions = Object.values(RegionName);
     let allUpdatePromises = []
     for (let region of regions) {
+        if (region == RegionName.US_WEST_1) continue;
         allUpdatePromises.push(updateRegionResources(region, regionResources));
     }
     let res = Promise.allSettled(allUpdatePromises).then((res) => {

@@ -7,9 +7,9 @@ for (let region of Object.values(RegionName)) {
     if (region == RegionName.US_WEST_1) continue;
     try {
         const handler = new RegionRequestHandler(region)
-        handler.refreshDomains();
-        handler.refreshInstances();
-        handler.refreshStaticIps();
+        await handler.refreshDomains();
+        await handler.refreshInstances();
+        await handler.refreshStaticIps();
         console.warn(region);
         regionHandlersMap.set(region, handler);
     }
