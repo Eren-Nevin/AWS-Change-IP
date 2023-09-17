@@ -13,7 +13,8 @@
     export let opened = false;
 
     export let instance: Instance;
-    export let instanceCronCopy: InstanceCron | undefined;
+    export let instanceCron: InstanceCron | undefined;
+    let instanceCronCopy = structuredClone(instanceCron);
     export let constantDomain: string | undefined;
 
     let constantDomains =
@@ -25,13 +26,14 @@
     let instanceCrons =
         getContext<Writable<Map<string, InstanceCron>>>("crons");
 
-    console.log(instanceCronCopy);
-
     export function open() {
         const modal = document.getElementById(
             `edit_instance_${instance.arn}_modal`
         );
         if (modal instanceof HTMLDialogElement) {
+            instanceCronCopy = structuredClone(instanceCron);
+            console.log("Instance", instanceCron);
+            console.log(instanceCronCopy);
             opened = true;
             modal.onclose = async () => {
                 opened = false;
@@ -65,15 +67,23 @@
     }
 
     export async function saveConstantDomain() {
-        if (!constantDomain || !instance.arn) {
+        if (!instance.arn) {
             return;
         }
-        await saveContantDomainToServer(instance.arn, constantDomain);
-        constantDomains.update((domains) => {
-            if (!instance.arn || !constantDomain) return domains;
-            domains.set(instance.arn, constantDomain);
-            return domains;
-        });
+        if (!constantDomain) {
+            constantDomains.update((domains) => {
+                if (!instance.arn) return domains;
+                domains.delete(instance.arn);
+                return domains;
+            });
+        } else {
+            await saveContantDomainToServer(instance.arn, constantDomain);
+            constantDomains.update((domains) => {
+                if (!instance.arn || !constantDomain) return domains;
+                domains.set(instance.arn, constantDomain);
+                return domains;
+            });
+        }
     }
 
     export async function saveCron() {
@@ -156,7 +166,9 @@
                     />
                 </label>
                 {#if !instanceCronCopy.useFixedTimeCron}
-                    <div class="w-44 flex flex-row gap-2 align-middle items-center">
+                    <div
+                        class="w-44 flex flex-row gap-2 align-middle items-center"
+                    >
                         <p>Every</p>
                         <input
                             type="number"
@@ -198,10 +210,15 @@
                             <button
                                 on:click|stopPropagation|preventDefault={() => {
                                     if (instanceCronCopy) {
-                                        instanceCronCopy.fixedTimeCrons.splice(
+                                        console.log(i);
+                                        const copiedInstanceCronCopy =
+                                            structuredClone(instanceCronCopy);
+                                        copiedInstanceCronCopy.fixedTimeCrons.splice(
                                             i,
                                             1
                                         );
+                                        instanceCronCopy =
+                                            copiedInstanceCronCopy;
                                     }
                                 }}>✕</button
                             >
@@ -214,7 +231,7 @@
                             if (instanceCronCopy) {
                                 instanceCronCopy.fixedTimeCrons = [
                                     ...instanceCronCopy.fixedTimeCrons,
-                                    { hour: 0, minute: 0 },
+                                    new FixedTimeCron(0, 0),
                                 ];
                             }
                         }}>Add Time</button

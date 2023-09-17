@@ -171,7 +171,7 @@
             <EditModal
                 bind:this={editModal}
                 {instance}
-                instanceCronCopy={instanceCron}
+                instanceCron={instanceCron}
                 {constantDomain}
             />
         {/if}

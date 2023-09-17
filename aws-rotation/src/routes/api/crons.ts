@@ -92,7 +92,7 @@ export class CronHandler {
             return false;
         }
 
-        const hasConstantDomain = constantDomainsMap.get(cron.instanceId) !== undefined;
+        const hasConstantDomain = constantDomainsMap.get(cron.instanceId)
         if (!hasConstantDomain) {
             logger.error(`CronJobs: Instance ${cron.instanceId} doesn't have a constant domain`);
             return false;
