@@ -1,1 +1,0 @@
-[{"instanceId":"arn:aws:lightsail:eu-central-1:146364080559:Instance/f58bb45d-b1fb-4810-847c-aa2d139594aa","region":"eu-central-1","intervalCron":{"hours":10,"minutes":0},"fixedTimeCrons":[{"hour":13,"minute":47},{"hour":13,"minute":50},{"hour":14,"minute":0},{"hour":14,"minute":40}],"useFixedTimeCron":true,"enabled":true}]
