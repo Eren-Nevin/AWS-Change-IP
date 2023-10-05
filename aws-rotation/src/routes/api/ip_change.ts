@@ -3,7 +3,9 @@ import type { Domain, Instance, StaticIp } from "@aws-sdk/client-lightsail";
 import { regionHandlersMap, RegionRequestHandler } from "./aws_handlers";
 import { constantDomainsMap } from "./constant_domains";
 import type { CronHandler } from "./crons";
+import { sendEmail, sendErrorMail } from "./mailer";
 import { logger } from "./utils";
+import { env } from "$env/dynamic/public";
 
 let rotateInstanceLock = false;
 
@@ -13,6 +15,7 @@ export async function rotateInstance(mInstance: Instance) {
         const regionRequestHandler = regionHandlersMap.get(mInstance.location?.regionName!);
         if (!regionRequestHandler) {
             logger.error(`RotateInstance: ${mInstance.name} region request handler not found`);
+            sendErrorMail(`RotateInstance: ${mInstance.name} region request handler not found`);
             return false;
         }
         // NOTE: Does this need to be here?
@@ -36,11 +39,13 @@ export async function rotateInstance(mInstance: Instance) {
         if (!mInstance.name) {
             logger.error(`RotateInstance: ${mInstance.name} instance name empty`);
             rotateInstanceLock = false;
+            sendErrorMail(`RotateInstance: ${mInstance.name} instance name empty`);
 
             return false
         };
         if (!mInstance.isStaticIp) {
             logger.error(`RotateInstance: ${mInstance.name} intstance name doesnt have static ips`);
+            sendErrorMail(`RotateInstance: ${mInstance.name} intstance name doesnt have static ips`);
 
             rotateInstanceLock = false;
 
@@ -49,6 +54,7 @@ export async function rotateInstance(mInstance: Instance) {
         let instanceRegion = mInstance.location?.regionName ?? '';
         if (!instanceRegion) {
             logger.error(`RotateInstasnce: ${mInstance.name} doesn't have region`);
+            sendErrorMail(`RotateInstasnce: ${mInstance.name} doesn't have region`);
 
             rotateInstanceLock = false;
             return false
@@ -61,12 +67,14 @@ export async function rotateInstance(mInstance: Instance) {
         let instance = regionRequestHandler.instances.find((i) => i.arn === mInstance.arn);
         if (!instance) {
             logger.error(`RotateInstance: ${mInstance.name} not found`);
+            sendErrorMail(`RotateInstance: ${mInstance.name} not found`);
 
             rotateInstanceLock = false;
             return false
         };
         if (!instance.name) {
             logger.error(`RotateInstance: ${instance} doesnt have name`);
+            sendErrorMail(`RotateInstance: ${instance} doesnt have name`);
 
             rotateInstanceLock = false;
             return false
@@ -87,6 +95,7 @@ export async function rotateInstance(mInstance: Instance) {
         const constantDomainName = constantDomainsMap.get(instance.arn!)
         if (!constantDomainName) {
             logger.error(`RotateInstance: ${instance.name} doesnt have constant domain`);
+            sendErrorMail(`RotateInstance: ${instance.name} doesnt have constant domain`);
 
             rotateInstanceLock = false;
             return false
@@ -121,6 +130,7 @@ export async function rotateInstance(mInstance: Instance) {
             logger.info(`RotateInstance: ${instance.name} Detached Previous IP: ${currentStaticIpName} from instance`);
         } else {
             logger.error(`RotateInstance: ${instance.name} Failed to detach static ip from instance`);
+            sendErrorMail(`RotateInstance: ${instance.name} Failed to detach static ip from instance`);
 
             rotateInstanceLock = false;
             return false;
@@ -134,6 +144,7 @@ export async function rotateInstance(mInstance: Instance) {
             logger.info(`RotateInstance: ${instance.name} Released Previous IP: ${currentStaticIpName}`);
         } else {
             logger.error(`RotateInstance: ${instance.name} Failed to release previous static ip ${currentStaticIpName}`);
+            sendErrorMail(`RotateInstance: ${instance.name} Failed to release previous static ip ${currentStaticIpName}`);
 
             rotateInstanceLock = false;
             return false;
@@ -148,6 +159,7 @@ export async function rotateInstance(mInstance: Instance) {
             logger.info(`RotateInstance: ${instance.name} Allocated New Static IP: ${newIpName}`);
         } else {
             logger.error(`RotateInstance: ${instance.name} Failed to allocate new static ip ${newIpName}}`);
+            sendErrorMail(`RotateInstance: ${instance.name} Failed to allocate new static ip ${newIpName}}`);
 
             rotateInstanceLock = false;
             return false;
@@ -159,6 +171,7 @@ export async function rotateInstance(mInstance: Instance) {
             logger.info(`RotateInstance: ${instance.name} Attached New IP: ${newIpName} to instance`);
         } else {
             logger.error(`RotateInstance: ${instance.name} Failed to attach new static ip ${newIpName} to instance`);
+            sendErrorMail(`RotateInstance: ${instance.name} Failed to attach new static ip ${newIpName} to instance`);
             rotateInstanceLock = false;
             return false;
         }
@@ -167,6 +180,7 @@ export async function rotateInstance(mInstance: Instance) {
         const refreshedStaticIPs = await regionRequestHandler.refreshStaticIps()
         if (!refreshedStaticIPs) {
             logger.error(`RotateInstance: ${instance.name} Failed to refresh static ips`);
+            sendErrorMail(`RotateInstance: ${instance.name} Failed to refresh static ips`);
             rotateInstanceLock = false;
             return false;
         }
@@ -178,6 +192,7 @@ export async function rotateInstance(mInstance: Instance) {
             [currentStaticIp.ipAddress!]);
         if (!res) {
             logger.error(`RotateInstance: ${instance.name} Failed to clear previous domain entries pointing to previous static ip`);
+            sendErrorMail(`RotateInstance: ${instance.name} Failed to clear previous domain entries pointing to previous static ip`);
 
             rotateInstanceLock = false;
             return false
@@ -192,6 +207,7 @@ export async function rotateInstance(mInstance: Instance) {
             logger.info(`RotateInstance: ${instance.name} Pointed domain ${currentDomain.name} to new ip ${newStaticIpAddress} by ${constantDomainName}`);
         } else {
             logger.error(`RotateInstance: ${instance.name} Failed to point domain ${currentDomain} to new ip ${newStaticIpAddress} by ${constantDomainName}`);
+            sendErrorMail(`RotateInstance: ${instance.name} Failed to point domain ${currentDomain} to new ip ${newStaticIpAddress} by ${constantDomainName}`);
 
             rotateInstanceLock = false;
             return false;
@@ -201,6 +217,7 @@ export async function rotateInstance(mInstance: Instance) {
             logger.info(`RotateInstance: ${instance.name} Successfully rotated instance`);
         } else {
             logger.error(`RotateInstance: ${instance.name} Failed to rotate instance`);
+            sendErrorMail(`RotateInstance: ${instance.name} Failed to rotate instance`);
         }
         rotateInstanceLock = false;
         return res;
@@ -210,6 +227,7 @@ export async function rotateInstance(mInstance: Instance) {
         return false;
     }
 }
+
 
 
 
