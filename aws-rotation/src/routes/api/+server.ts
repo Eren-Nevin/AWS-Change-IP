@@ -63,7 +63,7 @@ export async function POST(request: RequestEvent): Promise<Response> {
                         logger.info(`${region} Static IPs refreshed`);
                         return json(handler.static_ips);
                     case Resource.INSTANCE:
-                        sendErrorMail(`${region} Refreshing Instances`);
+                        // sendErrorMail(`${region} Refreshing Instances`);
                         res = await handler.refreshInstances()
                         if (!res) {
 
